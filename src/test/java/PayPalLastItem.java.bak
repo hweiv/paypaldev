@@ -1,0 +1,23 @@
+import com.paypal.api.payments.Payment;
+import com.paypal.api.payments.PaymentHistory;
+import com.paypal.base.rest.APIContext;
+
+public class PayPalLastItem {
+    public static void main(String[] args) {
+        String clientId = "Ach8iml2nSC9fha8K-6QIs51r51WJWMES59HqMqhb75BszO37bd2D4OmOi9AByAkPe9cDRCbc0McSWLm";
+        String clientSecret = "EDdOEVGnu7EDbJ5VLYi5uZcGDN_1hRrapREf9fMErimIkc8H_R6O1AeNLMpyFNTQ3hSdbcDeCbrk6GBz";
+        // Set up API context
+        APIContext context = new APIContext(clientId, clientSecret);
+
+// Get payment history
+        PaymentHistory paymentHistory = Payment.list(context, new PaymentHistory());
+
+// Get most recent payment
+        Payment mostRecentPayment = paymentHistory.getPayments().get(0);
+
+// Print payment details
+        System.out.println("Transaction ID: " + mostRecentPayment.getId());
+        System.out.println("Amount: " + mostRecentPayment.getTransactions().get(0).getAmount().getTotal());
+        System.out.println("Currency: " + mostRecentPayment.getTransactions().get(0).getAmount().getCurrency());
+    }
+}

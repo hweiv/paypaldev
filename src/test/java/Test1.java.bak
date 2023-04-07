@@ -1,0 +1,38 @@
+
+import com.paypal.api.payments.*;
+import com.paypal.base.rest.*;
+
+import java.util.HashMap;
+import java.util.List;
+
+public class GetLastTransactionId {
+    
+    public static void main(String[] args) {
+        
+        // 替换为您自己的PayPal账号信息
+        String clientId = "YOUR_CLIENT_ID";
+        String clientSecret = "YOUR_CLIENT_SECRET";
+        
+        // Step 1. 通过APIContext连接PayPal
+        APIContext context = new APIContext(clientId, clientSecret, "sandbox");
+        
+        // Step 2. 获取账号的最近一次交易
+        Transactions transactions = null;
+        try {
+            // 根据API文档，sort_by设置为"create_time"可获取最近的交易
+            Sale.list(context, new HashMap<String, String>(), "", "create_time desc", 1, "", null);
+        } catch (PayPalRESTException e) {
+            System.err.println(e.getLocalizedMessage());
+        }
+        
+        // Step 3. 获取最近交易的交易id
+        List<Sale> saleList = transactions.getSales();
+        if (saleList != null && !saleList.isEmpty()) {
+            Sale sale = saleList.get(0);
+            String transactionId = sale.getId();
+            System.out.println("最近一次交易的交易id为：" + transactionId);
+        } else {
+            System.out.println("没有找到最近的交易");
+        }
+    }
+}
