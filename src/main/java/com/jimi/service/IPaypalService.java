@@ -1,5 +1,6 @@
 package com.jimi.service;
 
+import com.jimi.entity.PaymentRespVo;
 import com.jimi.entity.PaymentVo;
 import com.jimi.entity.PaypalPaymentDto;
 import com.jimi.entity.PaypalPaymentInfo;
@@ -15,7 +16,7 @@ public interface IPaypalService {
      */
     List<PaypalPaymentDto> pushPayment(String startTime, String endTime) throws BusinessException;
 
-    List<PaypalPaymentInfo> queryAllPayment(PaymentVo paymentVo) throws BusinessException, ParseException;
+    List<PaymentRespVo> queryAllPayment(PaymentVo paymentVo) throws BusinessException, ParseException;
 
     List<PaypalPaymentDto> queryFromPaypal(PaymentVo paymentVo) throws BusinessException, ParseException;
 

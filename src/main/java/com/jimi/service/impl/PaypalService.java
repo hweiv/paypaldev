@@ -10,6 +10,7 @@ import com.google.common.collect.Lists;
 import com.jimi.common.constant.PaypalTransConstant;
 import com.jimi.common.dingding.DingDingPush;
 import com.jimi.common.redis.RedisCacheUtil;
+import com.jimi.entity.PaymentRespVo;
 import com.jimi.entity.PaymentVo;
 import com.jimi.entity.PaypalPaymentDto;
 import com.jimi.entity.PaypalPaymentInfo;
@@ -181,11 +182,21 @@ public class PaypalService implements IPaypalService {
     }
 
     @Override
-    public List<PaypalPaymentInfo> queryAllPayment(PaymentVo paymentVo) {
+    public List<PaymentRespVo> queryAllPayment(PaymentVo paymentVo) {
         log.info("PaypalService-queryAllPayment.paymentVo:{}", JSON.toJSONString(paymentVo));
         List<PaypalPaymentInfo> resultList = mapper.queryAllPayment(paymentVo);
         log.info("PaypalService-queryAllPayment.resultList:{}", JSON.toJSONString(resultList));
-        return resultList;
+        List<PaymentRespVo> paymentRespVos = new ArrayList<>();
+        for (PaypalPaymentInfo info : resultList) {
+            PaymentRespVo respVo = new PaymentRespVo();
+            BeanUtils.copyProperties(info, respVo);
+            respVo.setPushFlat(PaypalTransConstant.PUSH_FLAT.get(info.getPushFlat()));
+            respVo.setType(PaypalTransConstant.PAY_TYPE.get(info.getType()));
+            respVo.setStatus(PaypalTransConstant.PAY_STATUS.get(info.getStatus()));
+            paymentRespVos.add(respVo);
+        }
+        log.info("PaypalService-queryAllPayment.paymentRespVos:{}", JSON.toJSONString(paymentRespVos));
+        return paymentRespVos;
     }
 
     // 缓存校验得到交易单的增量信息

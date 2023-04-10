@@ -16,4 +16,11 @@ public class PaypalTransConstant {
             .put("Refunded", "已退款")
             .put("Under Review", "处理中")
             .build();
+
+    public final static ImmutableMap<String, String> PUSH_FLAT = ImmutableMap.<String, String>builder()
+            .put("0", "已推送")
+            .put("1", "未推送")
+            .put("", "未知")
+//            .put(null, "未知")
+            .build();
 }

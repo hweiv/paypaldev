@@ -36,7 +36,7 @@
 		<foreach collection="list" item="item" index="index" separator="," >
 			(#{item.id},#{item.transactionID},#{item.timestamp},#{item.timezone},#{item.type},#{item.payer},#{item.payerDisplayName},#{item.status},#{item.grossValue},
 			#{item.grossCurrency},#{item.feeValue},#{item.feeCurrency},#{item.netValue},#{item.netCurrency},
-			#{item.createTime},#{item.updateTime},#{item.createBy},#{item.updateBy},#{item.nativeTime},'1',#{item.pushFlat})
+			#{item.createTime},#{item.updateTime},#{item.createBy},#{item.updateBy},#{item.nativeTime},'0',#{item.pushFlat})
 		</foreach>
 	</insert>
 
@@ -47,11 +47,11 @@
 		where transaction_id = #{transactionID}
 	</select>
 
-	<select id="updateDelFlatByTransactionId" parameterType="java.lang.String">
+	<update id="updateDelFlatByTransactionId" parameterType="java.lang.String">
 		update paypal_payment_info
 		set del_flat = '1', update_time = now()
 		where transaction_id = #{transactionID}
-	</select>
+	</update>
 
 	<select id="queryAllPayment" resultMap="resultMap" parameterType="com.jimi.entity.PaymentVo">
 		select
@@ -59,7 +59,7 @@
 		from paypal_payment_info
 		<where>
 			<include refid="queryByParams" />
-			and del_flat = '1'
+			and del_flat = '0'
 		</where>
 	</select>
 
