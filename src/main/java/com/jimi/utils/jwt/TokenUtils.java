@@ -6,7 +6,10 @@ import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.interfaces.Claim;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import com.jimi.entity.Account;
+import com.jimi.interceptor.LoginInterceptor;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -19,8 +22,8 @@ import java.util.Map;
  * @author zm
  **/
 @Component
-@Slf4j
 public class TokenUtils {
+    private static final Logger logger = LoggerFactory.getLogger(TokenUtils.class);
     //设置过期时间
     private static final long EXPIRE_DATE=1000*60*60*1; // 60分钟
     //token秘钥
@@ -72,7 +75,7 @@ public class TokenUtils {
             DecodedJWT jwt = verifier.verify(token);
             return true;
         }catch (Exception e){
-            log.error("校验失败");
+            logger.error("校验失败");
             return  false;
         }
     }
@@ -97,7 +100,6 @@ public class TokenUtils {
         String password = "123";
         String token = token(username,password);
         System.out.println(token);
-//        boolean b = verify("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJwYXNzd29yZCI6IjEyMyIsImV4cCI6MTY1NzA5ODE4MCwidXNlcm5hbWUiOiJ6aGFuZ3NhbiJ9.W-IgXJmNBrboXlzT_PtPkTavYhgRn9ZwkVpJoJLU6ks");
         boolean b = verify(token);
         Claim username1 = JWT.decode(token).getClaim("username");
         Claim password1 = JWT.decode(token).getClaim("password");

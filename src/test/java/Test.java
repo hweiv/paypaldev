@@ -1,3 +1,6 @@
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Value;
+
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -5,7 +8,6 @@ import java.time.ZoneId;
 import java.util.*;
 
 public class Test {
-
     public static void main(String[] args) {
         Calendar calendar = Calendar.getInstance(); // create a Calendar instance
         Date date = calendar.getTime();
@@ -30,4 +32,5 @@ public class Test {
         System.out.println(sdf1.format(Date.from(endOfDay.atZone(ZoneId.systemDefault()).toInstant())));
         System.out.println(sdf.format(Date.from(endOfDay.atZone(ZoneId.systemDefault()).toInstant())));
     }
+
 }

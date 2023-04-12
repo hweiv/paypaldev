@@ -10,15 +10,14 @@ import com.google.common.collect.Lists;
 import com.jimi.common.constant.PaypalTransConstant;
 import com.jimi.common.dingding.DingDingPush;
 import com.jimi.common.redis.RedisCacheUtil;
-import com.jimi.entity.PaymentRespVo;
-import com.jimi.entity.PaymentVo;
-import com.jimi.entity.PaypalPaymentDto;
-import com.jimi.entity.PaypalPaymentInfo;
+import com.jimi.entity.*;
 import com.jimi.exception.BusinessException;
 import com.jimi.mapper.PaypalPaymentMapper;
 import com.jimi.service.IPaypalService;
 import com.jimi.utils.DateUtils;
-import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -29,29 +28,20 @@ import urn.ebay.api.PayPalAPI.PayPalAPIInterfaceServiceService;
 import urn.ebay.api.PayPalAPI.TransactionSearchReq;
 import urn.ebay.api.PayPalAPI.TransactionSearchRequestType;
 import urn.ebay.api.PayPalAPI.TransactionSearchResponseType;
-import urn.ebay.apis.eBLBaseComponents.PaymentTransactionClassCodeType;
 import urn.ebay.apis.eBLBaseComponents.PaymentTransactionSearchResultType;
 
 @Service
-@Slf4j
 public class PaypalService implements IPaypalService {
+    private static final Logger logger = LoggerFactory.getLogger(PaypalService.class);
 
     @Value("${paypal.mode}")
     private String mode;
-
-    @Value("${paypal.busi.username}")
-    private String username;
-
-    @Value("${paypal.busi.password}")
-    private String password;
-
-    @Value("${paypal.busi.signature}")
-    private String signature;
 
     @Value("${dingding.webhook}")
     private String webHook;
 
     private final static String PAYMENT_KEY = "PAYPALPAYMENT_";
+    private final static String PAYMENT_SET_KEY = "PAYPALPAYMENT_SET_KEY";
 
 //    @Autowired
 //    private APIContext apiContext;
@@ -69,40 +59,40 @@ public class PaypalService implements IPaypalService {
      */
     @Override
     @Transactional
-    public List<PaypalPaymentDto> pushPayment(String startTime, String endTime) throws BusinessException{
+    public List<PaypalPaymentDto> pushPayment(PaymentParamVo paramVo) throws BusinessException{
         Map<String,String> configMap = new HashMap<String,String>();
         configMap.put("mode", mode);
 
         // Account Credential
-        configMap.put("acct1.UserName", username);
-        configMap.put("acct1.Password", password);
-        configMap.put("acct1.Signature", signature);
-        // Subject is optional, only required in case of third party permission
-        //configMap.put("acct1.Subject", "");
-        // Sample Certificate credential
-        // configMap.put("acct2.UserName", "certuser_biz_api1.paypal.com");
-        // configMap.put("acct2.Password", "D6JNKKULHN3G5B8A");
-        // configMap.put("acct2.CertKey", "password");
-        // configMap.put("acct2.CertPath", "resource/sdk-cert.p12");
-        // configMap.put("acct2.AppId", "APP-80W284485P519543T");
+        configMap.put("acct1.UserName", paramVo.getUsername());
+        configMap.put("acct1.Password", paramVo.getPassword());
+        configMap.put("acct1.Signature", paramVo.getSignature());
 
         TransactionSearchReq txnreq = new TransactionSearchReq();
         TransactionSearchRequestType requestType = new TransactionSearchRequestType();
-        requestType.setStartDate(startTime);
-        requestType.setEndDate(endTime);
+        requestType.setStartDate(paramVo.getStartTime());
+        requestType.setEndDate(paramVo.getEndTime());
         requestType.setVersion("95.0");
         requestType.setTransactionID("");
         txnreq.setTransactionSearchRequest(requestType);
         PayPalAPIInterfaceServiceService service = new PayPalAPIInterfaceServiceService(configMap);
         try {
-            log.info("-PaypalService-pushPayment.transactions:{}", JSON.toJSONString(txnreq));
+            logger.info("-PaypalService-pushPayment.transactions:{}", JSON.toJSONString(txnreq));
             TransactionSearchResponseType txnresponse = service.transactionSearch(txnreq, configMap.get("acct1.UserName"));
             List<PaymentTransactionSearchResultType> transactionList = txnresponse.getPaymentTransactions();
             // 缓存进行校验得到新的交易单信息
             List<PaymentTransactionSearchResultType> transactions = checkRedisCache(transactionList);
 
-            log.info("-PaypalService-pushPayment.transactions:{}", JSON.toJSONString(transactions));
+            logger.info("-PaypalService-pushPayment.transactions:{}", JSON.toJSONString(transactions));
             List<PaypalPaymentDto> addPaymentDtoList = new ArrayList<>();
+            List<PaypalPaymentDto> pushPaymentDtoList = new ArrayList<>();
+            // 获取今天的日期
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");//设置日期格式
+            Date now = new Date();
+            String todayDate = sdf.format(now);
+            String key = PAYMENT_SET_KEY + todayDate;
+            Set<String> cacheSet = redisCacheUtil.getCacheSet(key);
+            Set<String> set = new HashSet<>(); // 新的交易单号
             for (PaymentTransactionSearchResultType transaction : transactions) {
                 PaypalPaymentDto paymentDto = new PaypalPaymentDto();
                 BeanUtils.copyProperties(transaction, paymentDto);
@@ -115,41 +105,61 @@ public class PaypalService implements IPaypalService {
                 // 根据交易单号查询表中数据是否存在，不存在直接插入，存在则把原来的单号数据失效，再插入
                 List<PaypalPaymentInfo> paymentInfos = mapper.selectByTransactionId(transaction.getTransactionID());
                 if (paymentInfos.size() > 0) {
-                    log.info("PaypalService.pushPayment 单号为:{}, 已存在数据:{}",transaction.getTransactionID(), JSON.toJSONString(paymentDto));
+                    logger.info("PaypalService.pushPayment 单号为:{}, 已存在数据:{}",transaction.getTransactionID(), JSON.toJSONString(paymentDto));
                     mapper.updateDelFlatByTransactionId(transaction.getTransactionID());
+                }
+                // grossAmount数值小于0 或者 付款账户为空则不推送
+                if (Double.parseDouble(transaction.getGrossAmount().getValue()) >= 0 && StringUtils.isNotBlank(transaction.getPayer()) &&
+                        !cacheSet.contains(paymentDto.getTransactionID())) { // 今天推送信息缓存不包含该单号
+                    paymentDto.setPushFlat("0");
+                    pushPaymentDtoList.add(paymentDto);
+                    set.add(paymentDto.getTransactionID());
+                } else {
+                    paymentDto.setPushFlat("1");
                 }
                 addPaymentDtoList.add(paymentDto);
             }
-            log.info("-PaypalService-pushPayment.addPaymentDtoList:{}", JSON.toJSONString(addPaymentDtoList));
-            sendDingMsg(addPaymentDtoList);
+            logger.info("-PaypalService-pushPayment.addPaymentDtoList:{}", JSON.toJSONString(addPaymentDtoList));
+            // 绑定账户
+            String bindAccount = paramVo.getUsername().replace("_api1.", "@");
+            sendDingMsg(pushPaymentDtoList, bindAccount);
+            if (set.size() > 0) {
+                set.addAll(cacheSet);
+                logger.info("-PaypalService-checkRedisCache key:{}, 新的缓存数据为:{}", key, JSON.toJSONString(set));
+                // 设置新的缓存，并且同时设置过期时间为7天
+                redisCacheUtil.setCacheSet(key, set);
+                redisCacheUtil.expire(key, 7, TimeUnit.DAYS);
+            }
             List<PaypalPaymentInfo> addPaymentInfos = new ArrayList<>();
             for (PaypalPaymentDto paymentDto : addPaymentDtoList) {
                 PaypalPaymentInfo paymentInfo = paymentDto.toInfo();
-                paymentInfo.setNativeTime(DateUtils.timeStrToDateGMT8(paymentDto.getTimestamp(), DateUtils.TIME_STR_T_Z));
-                paymentInfo.setPushFlat("0");
+                paymentInfo.setNativeTime(DateUtils.timeStrToDateGMT(paymentDto.getTimestamp(), DateUtils.TIME_STR_T_Z));
+                paymentInfo.setBindAccount(bindAccount);
+                String bindAccountName = PaypalTransConstant.BIND_ACCOUNT_NAME.get(bindAccount);
+                paymentInfo.setBindAccountName(bindAccountName);
                 addPaymentInfos.add(paymentInfo);
             }
             int count = 0;
             if (addPaymentInfos.size() > 0) {
                 count = mapper.insertBatchPayment(addPaymentInfos);
             }
-            log.info("成功插入数据-PaypalService-pushPayment.count:{}", JSON.toJSONString(count));
+            logger.info("成功插入数据-PaypalService-pushPayment.count:{}", JSON.toJSONString(count));
             if (count > 0) {
                 return addPaymentDtoList;
             } else {
-                log.info("-PaypalService-pushPayment 没有新数据");
+                logger.info("-PaypalService-pushPayment 没有新数据");
             }
         } catch (Exception e) {
-            log.error("-PaypalService-getPayment is error:{}", e);
+            logger.error("-PaypalService-getPayment is error:{}", e);
             throw new BusinessException(e.getMessage());
         }
         return new ArrayList<>();
     }
 
     @Transactional
-    public void sendDingMsg(List<PaypalPaymentDto> resultList) {
+    public void sendDingMsg(List<PaypalPaymentDto> resultList, String bindAccount) {
         if (resultList.size() > 0) {
-            String content = getContent(resultList);
+            String content = getContent(resultList, bindAccount);
             ArrayList<String> mobileList = Lists.newArrayList();
             DingDingPush.sendMsgToGroupChat(webHook, false, mobileList, content);
         }
@@ -159,44 +169,54 @@ public class PaypalService implements IPaypalService {
      * 获取消息文案
      *
      * @param paypalPaymentDtos
+     * @param bindAccount
      * @return
      */
-    private static String getContent(List<PaypalPaymentDto> paypalPaymentDtos) {
+    private String getContent(List<PaypalPaymentDto> paypalPaymentDtos, String bindAccount) {
         StringBuffer sb = new StringBuffer();
         sb.append("PayPal消息通知：").append("\n");
+        String bindAccountName = PaypalTransConstant.BIND_ACCOUNT_NAME.get(bindAccount);
 
         for (PaypalPaymentDto paymentDto : paypalPaymentDtos) {
             String timeStamp = DateUtils.transUTCToStrGMT8(paymentDto.getTimestamp());
             sb.append("交易单号：").append(paymentDto.getTransactionID()).append("\n")
-                    .append("付款账户：").append(paymentDto.getPayer()).append("\n")
+                    .append("账户名称：").append(bindAccountName).append("\n")
+                    .append("关联账户：").append(bindAccount).append("\n")
                     .append("付款来源：").append(paymentDto.getPayerDisplayName()).append("\n")
                     .append("交易金额：").append(paymentDto.getGrossValue()).append("  ").append(paymentDto.getGrossCurrency()).append("\n")
                     .append("手续费用：").append(paymentDto.getFeeValue()).append("  ").append(paymentDto.getFeeCurrency()).append("\n")
                     .append("实际到账：").append(paymentDto.getNetValue()).append("  ").append(paymentDto.getNetCurrency()).append("\n")
                     .append("交易时间：").append(timeStamp).append("\n")
-                    .append("交易状态：").append(PaypalTransConstant.PAY_STATUS.get(paymentDto.getStatus())).append("\n")
-                    .append("交易类型：").append(PaypalTransConstant.PAY_TYPE.get(paymentDto.getType())).append("\n").append("\n");
+                    .append("交易状态：").append(paymentDto.getStatus()).append("\n")
+                    .append("交易类型：").append(paymentDto.getType()).append("\n").append("\n");
         }
-        log.info("PaypalService-getContent result:{}", sb.toString());
+        logger.info("PaypalService-getContent result:{}", sb.toString());
         return sb.toString();
     }
 
     @Override
-    public List<PaymentRespVo> queryAllPayment(PaymentVo paymentVo) {
-        log.info("PaypalService-queryAllPayment.paymentVo:{}", JSON.toJSONString(paymentVo));
-        List<PaypalPaymentInfo> resultList = mapper.queryAllPayment(paymentVo);
-        log.info("PaypalService-queryAllPayment.resultList:{}", JSON.toJSONString(resultList));
+    public PaymentDtoPageInfo queryAllPayment(PaymentVo paymentVo) {
+        logger.info("PaypalService-queryAllPayment.paymentVo:{}", JSON.toJSONString(paymentVo));
+        if (Objects.isNull(paymentVo)) {
+            paymentVo.setPage(1);
+            paymentVo.setPageSize(10);
+        }
+        PaymentDtoPageInfo pageInfo = new PaymentDtoPageInfo();
+        pageInfo.setPage(paymentVo.getPage());
+        pageInfo.setPageSize(paymentVo.getPageSize());
+        int total = mapper.queryAllPayment(paymentVo);
+        List<PaypalPaymentInfo> resultList = mapper.queryAllPaymentPage(paymentVo);
+        logger.info("PaypalService-queryAllPayment.resultList:{}", JSON.toJSONString(resultList));
         List<PaymentRespVo> paymentRespVos = new ArrayList<>();
         for (PaypalPaymentInfo info : resultList) {
             PaymentRespVo respVo = new PaymentRespVo();
             BeanUtils.copyProperties(info, respVo);
-            respVo.setPushFlat(PaypalTransConstant.PUSH_FLAT.get(info.getPushFlat()));
-            respVo.setType(PaypalTransConstant.PAY_TYPE.get(info.getType()));
-            respVo.setStatus(PaypalTransConstant.PAY_STATUS.get(info.getStatus()));
             paymentRespVos.add(respVo);
         }
-        log.info("PaypalService-queryAllPayment.paymentRespVos:{}", JSON.toJSONString(paymentRespVos));
-        return paymentRespVos;
+        pageInfo.setList(paymentRespVos);
+        pageInfo.setTotal(total);
+        logger.info("PaypalService-queryAllPayment.paymentRespVos:{}", JSON.toJSONString(paymentRespVos));
+        return pageInfo;
     }
 
     // 缓存校验得到交易单的增量信息
@@ -208,7 +228,7 @@ public class PaypalService implements IPaypalService {
         String todayDate = sdf.format(now);
         String key = PAYMENT_KEY + todayDate;
         Set<String> cacheSet = redisCacheUtil.getCacheSet(key);
-        log.info("-PaypalService-checkRedisCache key:{}, 原缓存数据为:{}", key, JSON.toJSONString(cacheSet));
+        logger.info("-PaypalService-checkRedisCache key:{}, 原缓存数据为:{}", key, JSON.toJSONString(cacheSet));
         Set<String> set = new HashSet<>();
         for (PaymentTransactionSearchResultType type : transactionList) {
             String transactionID = type.getTransactionID(); // 事件id
@@ -224,38 +244,36 @@ public class PaypalService implements IPaypalService {
         }
         if (set.size() > 0) {
             set.addAll(cacheSet);
-            log.info("-PaypalService-checkRedisCache key:{}, 新的缓存数据为:{}", key, JSON.toJSONString(set));
+            logger.info("-PaypalService-checkRedisCache key:{}, 新的缓存数据为:{}", key, JSON.toJSONString(set));
             // 设置新的缓存，并且同时设置过期时间为7天
             redisCacheUtil.setCacheSet(key, set);
             redisCacheUtil.expire(key, 7, TimeUnit.DAYS);
         }
-        log.info("-PaypalService-checkRedisCache 新数据有:{}条, 新增数据为:{}", newPaymentList.size(), JSON.toJSONString(newPaymentList));
+        logger.info("-PaypalService-checkRedisCache 新数据有:{}条, 新增数据为:{}", newPaymentList.size(), JSON.toJSONString(newPaymentList));
         return newPaymentList;
     }
 
     /**
      * 查询Paypal的数据
-     * @param paymentVo
+     * @param paramVo
      * @return
      * @throws BusinessException
      */
     @Override
-    public List<PaypalPaymentDto> queryFromPaypal(PaymentVo paymentVo) throws BusinessException, ParseException {
-        if (Objects.isNull(paymentVo) || paymentVo.getStartTime() == null) {
+    public List<PaypalPaymentDto> queryFromPaypal(PaymentParamVo paramVo) throws BusinessException, ParseException {
+        if (Objects.isNull(paramVo) || paramVo.getStartTime() == null) {
             throw new BusinessException("参数错误或者缺失");
         }
-        log.info("PaypalService-queryFromPaypal.paymentVo:{}", JSON.toJSONString(paymentVo));
+        logger.info("PaypalService-queryFromPaypal.paymentVo:{}", JSON.toJSONString(paramVo));
         Map<String,String> configMap = new HashMap<String,String>();
         configMap.put("mode", mode);
-        configMap.put("acct1.UserName", username);
-        configMap.put("acct1.Password", password);
-        configMap.put("acct1.Signature", signature);
-        String startTime = DateUtils.dateToStringGMT(paymentVo.getStartTime(), DateUtils.TIME_STR_T_Z);
-//        String startTime = DateUtils.transStrToUTCGMT(paymentVo.getStartTime());
+        configMap.put("acct1.UserName", paramVo.getUsername());
+        configMap.put("acct1.Password", paramVo.getPassword());
+        configMap.put("acct1.Signature", paramVo.getSignature());
+        String startTime = DateUtils.transStrToUTCGMT(paramVo.getStartTime());
         String endTime = null;
-        if (paymentVo.getEndTime() != null) {
-            endTime = DateUtils.dateToStringGMT(paymentVo.getEndTime(), DateUtils.TIME_STR_T_Z);
-//            endTime = DateUtils.transStrToUTCGMT(paymentVo.getEndTime());
+        if (StringUtils.isNotBlank(paramVo.getEndTime())) {
+            endTime = DateUtils.transStrToUTCGMT(paramVo.getEndTime());
         }
         TransactionSearchReq txnreq = new TransactionSearchReq();
         TransactionSearchRequestType requestType = new TransactionSearchRequestType();
@@ -265,29 +283,74 @@ public class PaypalService implements IPaypalService {
         requestType.setTransactionID("");
         txnreq.setTransactionSearchRequest(requestType);
         PayPalAPIInterfaceServiceService service = new PayPalAPIInterfaceServiceService(configMap);
+        logger.info("-PaypalService-queryFromPaypal.configMap:{}", JSON.toJSONString(configMap));
         try {
-            log.info("-PaypalService-pushPayment.transactions:{}", JSON.toJSONString(txnreq));
             TransactionSearchResponseType txnresponse = service.transactionSearch(txnreq, configMap.get("acct1.UserName"));
             List<PaymentTransactionSearchResultType> transactionList = txnresponse.getPaymentTransactions();
 
-            log.info("-PaypalService-pushPayment.transactions:{}", JSON.toJSONString(transactionList));
+            logger.info("-PaypalService-queryFromPaypal.transactions:{}", JSON.toJSONString(transactionList));
             List<PaypalPaymentDto> addPaymentDtoList = new ArrayList<>();
-            for (PaymentTransactionSearchResultType transaction : transactionList) {
-                PaypalPaymentDto paymentDto = new PaypalPaymentDto();
-                BeanUtils.copyProperties(transaction, paymentDto);
-                paymentDto.setGrossValue(transaction.getGrossAmount().getValue());
-                paymentDto.setGrossCurrency(transaction.getGrossAmount().getCurrencyID().toString());
-                paymentDto.setFeeValue(transaction.getFeeAmount().getValue());
-                paymentDto.setFeeCurrency(transaction.getFeeAmount().getCurrencyID().toString());
-                paymentDto.setNetValue(transaction.getNetAmount().getValue());
-                paymentDto.setNetCurrency(transaction.getNetAmount().getCurrencyID().toString());
-                addPaymentDtoList.add(paymentDto);
-            }
-            log.info("-PaypalService-pushPayment.addPaymentDtoList:{}", JSON.toJSONString(addPaymentDtoList));
+            getPaymentDtoList(transactionList, addPaymentDtoList);
+            logger.info("-PaypalService-queryFromPaypal.addPaymentDtoList:{}", JSON.toJSONString(addPaymentDtoList));
             return addPaymentDtoList;
         } catch (Exception e) {
-            log.error("-PaypalService-getPayment is error:{}", e);
+            logger.error("-PaypalService-queryFromPaypal.getPayment is error:{}", e);
             throw new BusinessException(e.getMessage());
         }
+    }
+
+    private void getPaymentDtoList(List<PaymentTransactionSearchResultType> transactionList, List<PaypalPaymentDto> addPaymentDtoList) {
+        for (PaymentTransactionSearchResultType transaction : transactionList) {
+            PaypalPaymentDto paymentDto = new PaypalPaymentDto();
+            BeanUtils.copyProperties(transaction, paymentDto);
+            paymentDto.setGrossValue(transaction.getGrossAmount().getValue());
+            paymentDto.setGrossCurrency(transaction.getGrossAmount().getCurrencyID().toString());
+            paymentDto.setFeeValue(transaction.getFeeAmount().getValue());
+            paymentDto.setFeeCurrency(transaction.getFeeAmount().getCurrencyID().toString());
+            paymentDto.setNetValue(transaction.getNetAmount().getValue());
+            paymentDto.setNetCurrency(transaction.getNetAmount().getCurrencyID().toString());
+            addPaymentDtoList.add(paymentDto);
+        }
+    }
+
+    @Override
+    @Transactional
+    public boolean pushPaymentList(List<String> paymentIdList) {
+        logger.info("-PaypalService-pushPaymentList.paymentIdList:{}", JSON.toJSONString(paymentIdList));
+        try {
+            if (paymentIdList.size() < 1) {
+                return true;
+            } else {
+                List<PaypalPaymentInfo> paymentInfos = mapper.selectByIdList(paymentIdList);
+                logger.info("-PaypalService-pushPaymentList.paymentRespVos:{}", JSON.toJSONString(paymentInfos));
+                String content = getContent(paymentInfos);
+                ArrayList<String> mobileList = Lists.newArrayList();
+                DingDingPush.sendMsgToGroupChat(webHook, false, mobileList, content);
+                int count = mapper.updatePushFlatByIds(paymentInfos);
+                return true;
+            }
+        } catch (Exception e) {
+            logger.error("-PaypalService-pushPaymentList error", e);
+            return false;
+        }
+    }
+
+    private String getContent(List<PaypalPaymentInfo> paymentInfos) {
+        StringBuffer sb = new StringBuffer();
+        sb.append("PayPal消息通知：").append("\n");
+        for (PaypalPaymentInfo info : paymentInfos) {
+            sb.append("交易单号：").append(info.getTransactionID()).append("\n")
+                    .append("账户名称：").append(info.getBindAccountName()).append("\n")
+                    .append("关联账户：").append(info.getBindAccount()).append("\n")
+                    .append("付款来源：").append(info.getPayerDisplayName()).append("\n")
+                    .append("交易金额：").append(info.getGrossValue()).append("  ").append(info.getGrossCurrency()).append("\n")
+                    .append("手续费用：").append(info.getFeeValue()).append("  ").append(info.getFeeCurrency()).append("\n")
+                    .append("实际到账：").append(info.getNetValue()).append("  ").append(info.getNetCurrency()).append("\n")
+                    .append("交易时间：").append(info.getNativeTime()).append("\n")
+                    .append("交易状态：").append(info.getStatus()).append("\n")
+                    .append("交易类型：").append(info.getType()).append("\n").append("\n");
+        }
+        logger.info("PaypalService-getContent2 result:{}", sb.toString());
+        return sb.toString();
     }
 }

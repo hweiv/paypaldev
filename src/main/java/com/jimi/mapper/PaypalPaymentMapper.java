@@ -14,5 +14,11 @@ public interface PaypalPaymentMapper {
 
     void updateDelFlatByTransactionId(String transactionID);
 
-    List<PaypalPaymentInfo> queryAllPayment(PaymentVo paymentVo);
+    int queryAllPayment(PaymentVo paymentVo);
+
+    List<PaypalPaymentInfo> queryAllPaymentPage(PaymentVo paymentVo);
+
+    int updatePushFlatByIds(List<PaypalPaymentInfo> paymentInfos);
+
+    List<PaypalPaymentInfo> selectByIdList(List<String> paymentIdList);
 }

@@ -23,20 +23,22 @@
 		<result column="update_by" property="updateBy" jdbcType="VARCHAR" />
 		<result column="del_flat" property="delFlat" jdbcType="VARCHAR" />
 		<result column="push_flat" property="pushFlat" jdbcType="VARCHAR" />
+		<result column="bind_account" property="bindAccount" jdbcType="VARCHAR" />
+		<result column="bind_account_name" property="bindAccountName" jdbcType="VARCHAR" />
 	</resultMap>
 
 	<sql id="tableColumnList">
-		id,transaction_id, time_stamp,timezone,type,payer,payer_display_name,status,gross_value,gross_currency,fee_value,fee_currency,net_value,net_currency,create_time,update_time,create_by,update_by,native_time,del_flat,push_flat
+		id,transaction_id, time_stamp,timezone,type,payer,payer_display_name,status,gross_value,gross_currency,fee_value,fee_currency,net_value,net_currency,create_time,update_time,create_by,update_by,native_time,del_flat,push_flat,bind_account,bind_account_name
 	</sql>
 
 	<insert id="insertBatchPayment" parameterType="java.util.List" >
 		INSERT INTO
-		paypal_payment_info(id,transaction_id,time_stamp,timezone,type,payer,payer_display_name,status,gross_value,gross_currency,fee_value,fee_currency,net_value,net_currency,create_time,update_time,create_by,update_by,native_time,del_flat,push_flat)
+		paypal_payment_info(id,transaction_id,time_stamp,timezone,type,payer,payer_display_name,status,gross_value,gross_currency,fee_value,fee_currency,net_value,net_currency,create_time,update_time,create_by,update_by,native_time,del_flat,push_flat,bind_account,bind_account_name)
 		VALUES
 		<foreach collection="list" item="item" index="index" separator="," >
 			(#{item.id},#{item.transactionID},#{item.timestamp},#{item.timezone},#{item.type},#{item.payer},#{item.payerDisplayName},#{item.status},#{item.grossValue},
 			#{item.grossCurrency},#{item.feeValue},#{item.feeCurrency},#{item.netValue},#{item.netCurrency},
-			#{item.createTime},#{item.updateTime},#{item.createBy},#{item.updateBy},#{item.nativeTime},'0',#{item.pushFlat})
+			#{item.createTime},#{item.updateTime},#{item.createBy},#{item.updateBy},#{item.nativeTime},'0',#{item.pushFlat},#{item.bindAccount},#{item.bindAccountName})
 		</foreach>
 	</insert>
 
@@ -53,7 +55,17 @@
 		where transaction_id = #{transactionID}
 	</update>
 
-	<select id="queryAllPayment" resultMap="resultMap" parameterType="com.jimi.entity.PaymentVo">
+	<select id="queryAllPayment" parameterType="com.jimi.entity.PaymentVo" resultType="java.lang.Integer">
+		select
+		COUNT(*)
+		from paypal_payment_info
+		<where>
+			<include refid="queryByParams" />
+			and del_flat = '0'
+		</where>
+	</select>
+
+	<select id="queryAllPaymentPage" resultMap="resultMap" parameterType="com.jimi.entity.PaymentVo">
 		select
 		<include refid="tableColumnList" />
 		from paypal_payment_info
@@ -61,6 +73,8 @@
 			<include refid="queryByParams" />
 			and del_flat = '0'
 		</where>
+		order by native_time desc
+		LIMIT ${(page-1)*pageSize},${pageSize}
 	</select>
 
 	<sql id="queryByParams">
@@ -73,5 +87,27 @@
 		<if test="pushFlat != null">
 			<![CDATA[ AND push_flat = #{pushFlat} ]]>
 		</if>
+		<if test="bindAccount != null and bindAccount != ''">
+			<![CDATA[ AND bind_account = #{bindAccount} ]]>
+		</if>
 	</sql>
+
+	<update id="updatePushFlatByIds" parameterType="java.util.List">
+		<foreach collection="list" item="item" index="index" separator=";">
+			update paypal_payment_info
+			set push_flat = '0', update_time = now()
+			where
+			id = #{item.id} and push_flat = '1'
+		</foreach>
+	</update>
+
+	<select id="selectByIdList" resultMap="resultMap" parameterType="java.util.List">
+		select
+		<include refid="tableColumnList" />
+		from paypal_payment_info
+		where id in
+		<foreach item="item" index="index" collection="list" open="(" separator="," close=")">
+			#{item}
+		</foreach>
+	</select>
 </mapper>

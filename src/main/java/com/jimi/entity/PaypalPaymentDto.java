@@ -35,6 +35,8 @@ public class PaypalPaymentDto {
     private String netValue;
     // 最后金额币种
     private String netCurrency;
+    // 是否推送
+    private String pushFlat;
 
     public PaypalPaymentInfo toInfo() {
         PaypalPaymentInfo info = new PaypalPaymentInfo();

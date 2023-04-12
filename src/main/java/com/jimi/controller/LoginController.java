@@ -5,11 +5,14 @@ import com.jimi.entity.Account;
 import com.jimi.enums.CustomExceptionType;
 import com.jimi.exception.CustomException;
 import com.jimi.utils.MD5Utils;
+import com.jimi.utils.PayalUtils;
 import com.jimi.utils.jwt.TokenUtils;
 import com.jimi.utils.staticvar.StaticKeys;
 import io.swagger.annotations.ApiOperation;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -32,25 +35,13 @@ import javax.validation.Valid;
  */
 @Controller
 @RequestMapping(value = "/home")
-@Slf4j
 public class LoginController {
+    private static final Logger logger = LoggerFactory.getLogger(LoginController.class);
     @Value("${login.username}")
     private String username;
 
     @Value("${login.password}")
     private String password;
-
-//    /**
-//     * 转向到登录页面
-//     *
-//     * @param model
-//     * @param request
-//     * @return
-//     */
-//    @RequestMapping("toLogin")
-//    public String toLogin(Model model, HttpServletRequest request) {
-//        return "login/login";
-//    }
 
     /**
      * 登出系统
@@ -78,39 +69,6 @@ public class LoginController {
         throw new CustomException(CustomExceptionType.USER_CERTIFICATION_EXCEPTION, "用户未登录");
     }
 
-
-//    /**
-//     * 管理员登录验证
-//     *
-//     * @param model
-//     * @param request
-//     * @return
-//     */
-    /*
-    @RequestMapping(value = "login")
-    public String login(Model model, HttpServletRequest request) {
-        String userName = request.getParameter("userName");
-        String passwd = request.getParameter("md5pwd");
-//        String code = request.getParameter(StaticKeys.SESSION_CODE);
-        HttpSession session = request.getSession();
-        try {
-            if (!StringUtils.isEmpty(userName) && !StringUtils.isEmpty(passwd)) {
-                Account account = new Account();
-                if (MD5Utils.GetMD5Code(password).equals(passwd) && username.equals(userName)) {
-                    account.setAccount(password);
-                    account.setPassword(username);
-                    request.getSession().setAttribute(StaticKeys.LOGIN_KEY, account);
-                    return "index";
-                }
-            }
-        } catch (Exception e) {
-            log.error("登录异常：", e);
-        }
-        model.addAttribute("error", "帐号或者密码错误");
-        return "login/login";
-    }
-    */
-
     @ApiOperation("用户登录")
     @PostMapping("/login")
     @ResponseBody
@@ -121,7 +79,7 @@ public class LoginController {
             ApiResult<String> success = ApiResult.success(token);
             return success;
         }
-        return ApiResult.error();
+        return ApiResult.error("登录验证失败");
     }
 
 

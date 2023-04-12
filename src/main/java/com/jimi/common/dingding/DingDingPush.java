@@ -3,15 +3,19 @@ package com.jimi.common.dingding;
 import cn.hutool.http.HttpUtil;
 import com.alibaba.fastjson.JSON;
 import com.google.common.collect.Lists;
+import com.jimi.controller.LoginController;
 import com.jimi.exception.BusinessException;
 import lombok.extern.slf4j.Slf4j;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import com.google.common.collect.Maps;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 
-@Slf4j
 public class DingDingPush {
+    private static final Logger logger = LoggerFactory.getLogger(DingDingPush.class);
     public static void main(String[] args) throws BusinessException {
         //把webhook设置成对应群的即可
         String webhook ="https://oapi.dingtalk.com/robot/send?access_token=ebd303976fa69afb9a1d2e593f5511eb8238f793bdff6ec1689ffe071341f9a7";
@@ -33,9 +37,9 @@ public class DingDingPush {
             String reqStr = buildReqStr(content, isAtAll, mobileList);
             //推送消息(http请求)
             String result = HttpUtil.post(webHook, reqStr);
-            log.info("通知响应结果：{}",result);
+            logger.info("通知响应结果：{}",result);
         }catch (Exception e){
-            log.error("webhook通知失败",e);
+            logger.error("webhook通知失败",e);
         }
     }
  

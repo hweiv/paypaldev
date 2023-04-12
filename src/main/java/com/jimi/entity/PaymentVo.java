@@ -12,4 +12,10 @@ public class PaymentVo {
     private Date endTime;
     // 发送消息标识：0-已发送；1-未发送
     private String pushFlat;
+    // 页面
+    private Integer page;
+    // 页面大小
+    private Integer pageSize;
+    // 关联账号
+    private String bindAccount;
 }

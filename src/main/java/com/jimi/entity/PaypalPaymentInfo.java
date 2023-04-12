@@ -45,4 +45,8 @@ public class PaypalPaymentInfo {
     private String delFlat;
     // 是否推送
     private String pushFlat;
+    // 关联账号
+    private String bindAccount;
+    // 关联账号名称
+    private String bindAccountName;
 }

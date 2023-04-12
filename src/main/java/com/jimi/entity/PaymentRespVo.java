@@ -6,7 +6,9 @@ import java.util.Date;
 
 @Data
 public class PaymentRespVo {
-    // 事件id
+    // id
+    private String id;
+    // 交易单号
     private String transactionID;
     // 类型：Refund-退款；Fee Reversal-费用回退；Payment-支付
     private String type;
@@ -32,4 +34,8 @@ public class PaymentRespVo {
     private Date nativeTime;
     // 是否推送
     private String pushFlat;
+    // 关联账户
+    private String bindAccount;
+    // 关联账号名称
+    private String bindAccountName;
 }

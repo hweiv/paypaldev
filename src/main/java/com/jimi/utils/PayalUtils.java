@@ -3,7 +3,10 @@ package com.jimi.utils;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+import com.jimi.common.ScheduledTask;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
@@ -16,11 +19,10 @@ import java.util.Map;
 /**
  * Paypal工具类
  */
-@Slf4j
 public class PayalUtils {
-
+    private static final Logger logger = LoggerFactory.getLogger(PayalUtils.class);
     public static String getAccessToken(String clientId, String clientSecret) {
-        log.info("=PaypalUtils-getAccessToken.clientId:{}, clientSecret:{}", clientId, clientSecret);
+        logger.info("=PaypalUtils-getAccessToken.clientId:{}, clientSecret:{}", clientId, clientSecret);
         String accessToken = "";
         try {
             String authString = clientId + ":" + clientSecret;
@@ -45,7 +47,7 @@ public class PayalUtils {
             JSONObject json = JSONObject.parseObject(response.toString());
             accessToken = json.getString("access_token");
         } catch (Exception e) {
-            log.error("=PaypalUtils-getAccessToken is error:{}", e);
+            logger.error("=PaypalUtils-getAccessToken is error:{}", e);
         }
         return accessToken;
     }
@@ -93,7 +95,7 @@ public class PayalUtils {
                 System.out.println("------------------------------");
             }
         } catch (Exception e) {
-            log.error("=PaypalUtils-getAccessToken is error:{}", e);
+            logger.error("=PaypalUtils-getAccessToken is error:{}", e);
         }
         return null;
     }

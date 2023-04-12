@@ -1,14 +1,20 @@
 package com.jimi.common;
 
 import cn.hutool.json.JSONObject;
+import com.alibaba.fastjson.JSON;
 import com.google.common.collect.Lists;
 import com.jimi.common.constant.PaypalTransConstant;
 import com.jimi.common.dingding.DingDingPush;
+import com.jimi.entity.PaymentParamVo;
 import com.jimi.entity.PaypalPaymentDto;
 import com.jimi.service.IPaypalService;
+import com.jimi.service.impl.PaypalService;
 import com.jimi.utils.DateUtils;
 import com.jimi.utils.RestUtil;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -32,14 +38,22 @@ import java.util.concurrent.TimeUnit;
  * @Copyright: 2017-2022 www.wgstart.com. All rights reserved.
  */
 @Component
-@Slf4j
 public class ScheduledTask {
-
+    private static final Logger logger = LoggerFactory.getLogger(ScheduledTask.class);
     @Autowired
     private IPaypalService paypalService;
 
     @Value("${dingding.webhook}")
     private String webHook;
+
+    @Value("#{'${paypal.busi.app.usernameList:}'.split(',')}")
+    private List<String> userList;
+
+    @Value("#{'${paypal.busi.app.passwordList:}'.split(',')}")
+    private List<String> pswList;
+
+    @Value("#{'${paypal.busi.app.signatureList:}'.split(',')}")
+    private List<String> signatureList;
 
     /**
      * 线程池
@@ -48,21 +62,37 @@ public class ScheduledTask {
 
     /**
      * 推送到钉钉群
-     * 60秒后执行，每隔10*60秒执行, 单位：ms。
+     * 60秒后执行，每隔1*60*60秒（1小时）执行, 单位：ms。
      */
-    @Scheduled(initialDelay = 1000L, fixedRate = 10 * 60 * 1000)
+    @Scheduled(initialDelay = 1000L, fixedRate = 1* 60 * 60 * 1000)
     public void executor() {
-        log.info("ScheduledTask-executor start run");
+        logger.info("ScheduledTask-executor start run");
+        logger.info("ScheduledTask-executor start run 总共读取到账户数:{}", userList.size());
         try {
             // 开始时间 本地时间今日零点
             String startTime = DateUtils.getTodayFormat();
             // 现在的本地时间
             String endTime = DateUtils.getNowFormat();
-            // 定时任务，扫描执行接口更新数据
-            List<PaypalPaymentDto> resultList = paypalService.pushPayment(startTime, endTime);
-            log.info("ScheduledTask executor data:{}", resultList);
+            if (userList.size() < 1) {
+                return;
+            }
+            for (int i = 0; i < userList.size(); i++) {
+                if (StringUtils.isNotBlank(userList.get(i))) {
+                    PaymentParamVo paramVo = new PaymentParamVo();
+                    paramVo.setStartTime(startTime);
+                    paramVo.setEndTime(endTime);
+                    paramVo.setUsername(userList.get(i));
+                    paramVo.setPassword(pswList.get(i));
+                    paramVo.setSignature(signatureList.get(i));
+                    logger.info("ScheduledTask executor data-paramVo:{}", JSON.toJSONString(paramVo));
+                    List<PaypalPaymentDto> resultList = paypalService.pushPayment(paramVo);
+                    logger.info("ScheduledTask executor data-resultList:{}", resultList);
+                } else {
+                    continue;
+                }
+            }
         } catch (Exception e) {
-            log.error("-ScheduledTask-executor is error:{}", e);
+            logger.error("-ScheduledTask-executor is error:{}", e);
         }
     }
 
@@ -73,7 +103,7 @@ public class ScheduledTask {
     /*
     @Scheduled(initialDelay = 1000L, fixedRate = 1 * 60 * 60 * 1000)
     public void runPayment() {
-        log.info("ScheduledTask-runPayment start run");
+        logger.info("ScheduledTask-runPayment start run");
         try {
             Calendar cal = Calendar.getInstance();
             Date currentTime = cal.getTime();
@@ -91,9 +121,9 @@ public class ScheduledTask {
 //                ArrayList<String> mobileList = Lists.newArrayList();
 //                DingDingPush.sendMsgToGroupChat(webHook, false, mobileList, content);
 //            }
-            log.info("ScheduledTask executor data:{}", resultList);
+            logger.info("ScheduledTask executor data:{}", resultList);
         } catch (Exception e) {
-            log.error("-ScheduledTask-executor is error:{}", e);
+            logger.error("-ScheduledTask-executor is error:{}", e);
         }
     }
 

@@ -23,4 +23,11 @@ public class PaypalTransConstant {
             .put("", "未知")
 //            .put(null, "未知")
             .build();
+
+    public final static ImmutableMap<String, String> BIND_ACCOUNT_NAME = ImmutableMap.<String, String>builder()
+            .put("sb-e8ud221290071@business.example.com", "公司沙盒测试PayPal账号")
+            .put("sb-liqjq15336561@business.example.com", "个人沙盒测试PayPal账号")
+            .put("support76@jimilab.com", "香港康凯斯PayPal账号")
+            .put("linjufen@jimilab.com", "几米PayPal账号")
+            .build();
 }

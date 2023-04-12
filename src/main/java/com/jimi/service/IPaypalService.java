@@ -1,9 +1,6 @@
 package com.jimi.service;
 
-import com.jimi.entity.PaymentRespVo;
-import com.jimi.entity.PaymentVo;
-import com.jimi.entity.PaypalPaymentDto;
-import com.jimi.entity.PaypalPaymentInfo;
+import com.jimi.entity.*;
 import com.jimi.exception.BusinessException;
 
 import java.text.ParseException;
@@ -14,11 +11,13 @@ public interface IPaypalService {
      * 获取支付记录
      * @return
      */
-    List<PaypalPaymentDto> pushPayment(String startTime, String endTime) throws BusinessException;
+    List<PaypalPaymentDto> pushPayment(PaymentParamVo paramVo) throws BusinessException;
 
-    List<PaymentRespVo> queryAllPayment(PaymentVo paymentVo) throws BusinessException, ParseException;
+    PaymentDtoPageInfo queryAllPayment(PaymentVo paymentVo) throws BusinessException, ParseException;
 
-    List<PaypalPaymentDto> queryFromPaypal(PaymentVo paymentVo) throws BusinessException, ParseException;
+    List<PaypalPaymentDto> queryFromPaypal(PaymentParamVo paramVo) throws BusinessException, ParseException;
+
+    boolean pushPaymentList(List<String> paymentIdList);
 
     /*
     Payment createPayment(Double v, String usd, PaypalPaymentMethod paypal, PaypalPaymentIntent sale, String payment_description, String cancelUrl, String successUrl) throws PayPalRESTException;
