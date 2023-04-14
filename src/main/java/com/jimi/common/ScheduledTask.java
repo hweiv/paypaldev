@@ -60,11 +60,18 @@ public class ScheduledTask {
      */
     static ThreadPoolExecutor executor = new ThreadPoolExecutor(5, 10, 2, TimeUnit.MINUTES, new LinkedBlockingDeque<>());
 
-    /**
+    /*
      * 推送到钉钉群
      * 60秒后执行，每隔1*60*60秒（1小时）执行, 单位：ms。
+     * @Scheduled(initialDelay = 1000L, fixedRate = 1* 60 * 60 * 1000)
      */
-    @Scheduled(initialDelay = 1000L, fixedRate = 1* 60 * 60 * 1000)
+    /**
+     * 定时任务扫描PayPal账户，推送到钉钉群
+     * 表示每天的 0:59:30 执行，每隔1h执行一次
+     * @Scheduled(cron = "30 59 0/1 * * ?")
+     * 秒、分、时、日、月、周
+     */
+    @Scheduled(cron = "30 59 0/1 * * ?")
     public void executor() {
         logger.info("ScheduledTask-executor start run");
         logger.info("ScheduledTask-executor start run 总共读取到账户数:{}", userList.size());
