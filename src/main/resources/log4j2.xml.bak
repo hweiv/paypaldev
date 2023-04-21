@@ -31,6 +31,6 @@
             <AppenderRef ref="CONSOLE" />
             <AppenderRef ref="runtimeFile" />
         </root>
-        <Logger name="io.swagger" level="error"/>
+        <Logger name="io.swagger" level="info"/>
     </Loggers>
 </configuration>

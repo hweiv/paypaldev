@@ -37,11 +37,20 @@ public class PaypalService implements IPaypalService {
     @Value("${paypal.mode}")
     private String mode;
 
-    @Value("${dingding.webhook}")
-    private String webHook;
+    @Value("${paypal.tob.dingding.webhook}")
+    private String tobPayPalRobotUrl;
 
-    private final static String PAYMENT_KEY = "PAYPALPAYMENT_";
-    private final static String PAYMENT_SET_KEY = "PAYPALPAYMENT_SET_KEY";
+    @Value("${paypal.toc.dingding.webhook}")
+    private String tocPayPalRobotUrl;
+
+    @Value("#{'${paypal.busi.tob.app.usernameList:}'.split(',')}")
+    private List<String> userListTob;
+
+    @Value("#{'${paypal.busi.toc.app.usernameList:}'.split(',')}")
+    private List<String> userListToc;
+
+    private static final String PAYMENT_KEY = "PAYPALPAYMENT_";
+    private static final String PAYMENT_SET_KEY = "PAYPALPAYMENT_SET_KEY";
 
 //    @Autowired
 //    private APIContext apiContext;
@@ -122,7 +131,7 @@ public class PaypalService implements IPaypalService {
             logger.info("-PaypalService-pushPayment.addPaymentDtoList:{}", JSON.toJSONString(addPaymentDtoList));
             // 绑定账户
             String bindAccount = paramVo.getUsername().replace("_api1.", "@");
-            sendDingMsg(pushPaymentDtoList, bindAccount);
+            sendDingMsg(pushPaymentDtoList, bindAccount, paramVo.getWebHookUrl());
             if (set.size() > 0) {
                 set.addAll(cacheSet);
                 logger.info("-PaypalService-checkRedisCache key:{}, 新的缓存数据为:{}", key, JSON.toJSONString(set));
@@ -157,7 +166,7 @@ public class PaypalService implements IPaypalService {
     }
 
     @Transactional
-    public void sendDingMsg(List<PaypalPaymentDto> resultList, String bindAccount) {
+    public void sendDingMsg(List<PaypalPaymentDto> resultList, String bindAccount, String webHook) {
         if (resultList.size() > 0) {
             String content = getContent(resultList, bindAccount);
             ArrayList<String> mobileList = Lists.newArrayList();
@@ -317,16 +326,34 @@ public class PaypalService implements IPaypalService {
     @Transactional
     public boolean pushPaymentList(List<String> paymentIdList) {
         logger.info("-PaypalService-pushPaymentList.paymentIdList:{}", JSON.toJSONString(paymentIdList));
+        Set<String> setB = new HashSet<>();
+        userListTob.forEach(account -> setB.add(account.replace("_api1.", "@")));
+        Set<String> setC = new HashSet<>();
+        userListToc.forEach(account -> setC.add(account.replace("_api1.", "@")));
         try {
             if (paymentIdList.size() < 1) {
                 return true;
             } else {
                 List<PaypalPaymentInfo> paymentInfos = mapper.selectByIdList(paymentIdList);
                 logger.info("-PaypalService-pushPaymentList.paymentRespVos:{}", JSON.toJSONString(paymentInfos));
-                String content = getContent(paymentInfos);
-                ArrayList<String> mobileList = Lists.newArrayList();
-                DingDingPush.sendMsgToGroupChat(webHook, false, mobileList, content);
+                List<PaypalPaymentInfo> tobPaymentInfos = new ArrayList<>();
+                List<PaypalPaymentInfo> tocPaymentInfos = new ArrayList<>();
+                for (PaypalPaymentInfo paymentInfo : paymentInfos) {
+                    if (setB.contains(paymentInfo.getBindAccount())) {
+                        tobPaymentInfos.add(paymentInfo);
+                    }
+                    if (setC.contains(paymentInfo.getBindAccount())) {
+                        tocPaymentInfos.add(paymentInfo);
+                    }
+                }
+                String contentB = getContent(tobPaymentInfos);
+                ArrayList<String> mobileListB = Lists.newArrayList();
+                DingDingPush.sendMsgToGroupChat(tobPayPalRobotUrl, false, mobileListB, contentB);
+                String contentC = getContent(tocPaymentInfos);
+                ArrayList<String> mobileListC = Lists.newArrayList();
+                DingDingPush.sendMsgToGroupChat(tocPayPalRobotUrl, false, mobileListC, contentC);
                 int count = mapper.updatePushFlatByIds(paymentInfos);
+                logger.info("-PaypalService-pushPaymentList.count:{}", JSON.toJSONString(count));
                 return true;
             }
         } catch (Exception e) {

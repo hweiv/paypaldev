@@ -43,17 +43,29 @@ public class ScheduledTask {
     @Autowired
     private IPaypalService paypalService;
 
-    @Value("${dingding.webhook}")
-    private String webHook;
+    @Value("${paypal.tob.dingding.webhook}")
+    private String tobPayPalRobotUrl;
 
-    @Value("#{'${paypal.busi.app.usernameList:}'.split(',')}")
-    private List<String> userList;
+    @Value("${paypal.toc.dingding.webhook}")
+    private String tocPayPalRobotUrl;
 
-    @Value("#{'${paypal.busi.app.passwordList:}'.split(',')}")
-    private List<String> pswList;
+    @Value("#{'${paypal.busi.tob.app.usernameList:}'.split(',')}")
+    private List<String> userListTob;
 
-    @Value("#{'${paypal.busi.app.signatureList:}'.split(',')}")
-    private List<String> signatureList;
+    @Value("#{'${paypal.busi.tob.app.passwordList:}'.split(',')}")
+    private List<String> pswListTob;
+
+    @Value("#{'${paypal.busi.tob.app.signatureList:}'.split(',')}")
+    private List<String> signatureListTob;
+
+    @Value("#{'${paypal.busi.toc.app.usernameList:}'.split(',')}")
+    private List<String> userListToc;
+
+    @Value("#{'${paypal.busi.toc.app.passwordList:}'.split(',')}")
+    private List<String> pswListToc;
+
+    @Value("#{'${paypal.busi.toc.app.signatureList:}'.split(',')}")
+    private List<String> signatureListToc;
 
     /**
      * 线程池
@@ -66,31 +78,33 @@ public class ScheduledTask {
      * @Scheduled(initialDelay = 1000L, fixedRate = 1* 60 * 60 * 1000)
      */
     /**
+     * ToB端账户（公司PayPal、康凯斯）
      * 定时任务扫描PayPal账户，推送到钉钉群
-     * 表示每天的 0:59:30 执行，每隔1h执行一次
+     * 表示每天的 0:59:10 执行，每隔1h执行一次
      * @Scheduled(cron = "30 59 0/1 * * ?")
      * 秒、分、时、日、月、周
      */
-    @Scheduled(cron = "30 59 0/1 * * ?")
+    @Scheduled(cron = "10 59 0/1 * * ?")
     public void executor() {
         logger.info("ScheduledTask-executor start run");
-        logger.info("ScheduledTask-executor start run 总共读取到账户数:{}", userList.size());
+        logger.info("ScheduledTask-executor start run 总共读取到账户数:{}, 对应账户为:{}", userListTob.size(), JSON.toJSONString(userListTob));
         try {
             // 开始时间 本地时间今日零点
             String startTime = DateUtils.getTodayFormat();
             // 现在的本地时间
             String endTime = DateUtils.getNowFormat();
-            if (userList.size() < 1) {
+            if (userListTob.size() < 1) {
                 return;
             }
-            for (int i = 0; i < userList.size(); i++) {
-                if (StringUtils.isNotBlank(userList.get(i))) {
+            for (int i = 0; i < userListTob.size(); i++) {
+                if (StringUtils.isNotBlank(userListTob.get(i))) {
                     PaymentParamVo paramVo = new PaymentParamVo();
                     paramVo.setStartTime(startTime);
                     paramVo.setEndTime(endTime);
-                    paramVo.setUsername(userList.get(i));
-                    paramVo.setPassword(pswList.get(i));
-                    paramVo.setSignature(signatureList.get(i));
+                    paramVo.setUsername(userListTob.get(i));
+                    paramVo.setPassword(pswListTob.get(i));
+                    paramVo.setSignature(signatureListTob.get(i));
+                    paramVo.setWebHookUrl(tobPayPalRobotUrl);
                     logger.info("ScheduledTask executor data-paramVo:{}", JSON.toJSONString(paramVo));
                     List<PaypalPaymentDto> resultList = paypalService.pushPayment(paramVo);
                     logger.info("ScheduledTask executor data-resultList:{}", resultList);
@@ -104,35 +118,42 @@ public class ScheduledTask {
     }
 
     /**
-     * 定时器请求交易单数据，存入表中
-     * 60秒后执行，每隔 1小时 执行, 单位：ms。
+     *  电商（ToC）端账户
+     * 定时任务扫描PayPal账户，推送到钉钉群
+     * 表示每天的 0:29:40 执行，每隔30min执行一次
+     * @Scheduled(cron = "30 59 0/1 * * ?")
+     * 秒、分、时、日、月、周
      */
-    /*
-    @Scheduled(initialDelay = 1000L, fixedRate = 1 * 60 * 60 * 1000)
-    public void runPayment() {
-        logger.info("ScheduledTask-runPayment start run");
+    @Scheduled(cron = "40 29/30 * * * ?")
+    public void onlineToCPush() {
+        logger.info("ScheduledTask-onlineToCPush start run");
+        logger.info("ScheduledTask-onlineToCPush start run 总共读取到账户数:{}, 对应账户为:{}", userListToc.size(), JSON.toJSONString(userListToc));
         try {
-            Calendar cal = Calendar.getInstance();
-            Date currentTime = cal.getTime();
-            cal.setTime(currentTime);
-            cal.add(Calendar.HOUR_OF_DAY, -2);
-            Date twoHoursAgo = cal.getTime();
-            // 两个小时以前--开始时间
-            String startTime = DateUtils.dateToStringGMT(twoHoursAgo, DateUtils.TIME_STR_T_Z);
-            // 现在--结束时间
-            String endTime = DateUtils.dateToStringGMT(currentTime, DateUtils.TIME_STR_T_Z);
-            // 定时任务，扫描执行接口更新数据
-            List<PaypalPaymentDto> resultList = paypalService.queryAllPayment(startTime, endTime);
-//            if (resultList.size() > 0) {
-//                String content = getContent(resultList);
-//                ArrayList<String> mobileList = Lists.newArrayList();
-//                DingDingPush.sendMsgToGroupChat(webHook, false, mobileList, content);
-//            }
-            logger.info("ScheduledTask executor data:{}", resultList);
+            // 开始时间 本地时间今日零点
+            String startTime = DateUtils.getTodayFormat();
+            // 现在的本地时间
+            String endTime = DateUtils.getNowFormat();
+            if (userListToc.size() < 1) {
+                return;
+            }
+            for (int i = 0; i < userListToc.size(); i++) {
+                if (StringUtils.isNotBlank(userListToc.get(i))) {
+                    PaymentParamVo paramVo = new PaymentParamVo();
+                    paramVo.setStartTime(startTime);
+                    paramVo.setEndTime(endTime);
+                    paramVo.setUsername(userListToc.get(i));
+                    paramVo.setPassword(pswListToc.get(i));
+                    paramVo.setSignature(signatureListToc.get(i));
+                    paramVo.setWebHookUrl(tocPayPalRobotUrl);
+                    logger.info("ScheduledTask onlineToCPush data-paramVo:{}", JSON.toJSONString(paramVo));
+                    List<PaypalPaymentDto> resultList = paypalService.pushPayment(paramVo);
+                    logger.info("ScheduledTask onlineToCPush data-resultList:{}", resultList);
+                } else {
+                    continue;
+                }
+            }
         } catch (Exception e) {
             logger.error("-ScheduledTask-executor is error:{}", e);
         }
     }
-
-     */
 }

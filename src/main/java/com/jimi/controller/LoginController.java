@@ -34,7 +34,7 @@ import javax.validation.Valid;
  * @Copyright: 2017-2022 wgcloud. All rights reserved.
  */
 @Controller
-@RequestMapping(value = "/home")
+@RequestMapping(value = "/paypal/home")
 public class LoginController {
     private static final Logger logger = LoggerFactory.getLogger(LoginController.class);
     @Value("${login.username}")

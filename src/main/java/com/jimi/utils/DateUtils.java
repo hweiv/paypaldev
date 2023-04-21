@@ -11,8 +11,8 @@ import java.util.TimeZone;
  * 时间工具类
  */
 public class DateUtils {
-    public final static String TIME_STR_T_Z = "yyyy-MM-dd'T'HH:mm:ss'Z'";
-    public final static String TIME_STR = "yyyy-MM-dd HH:mm:ss";
+    public static final String TIME_STR_T_Z = "yyyy-MM-dd'T'HH:mm:ss'Z'";
+    public static final String TIME_STR = "yyyy-MM-dd HH:mm:ss";
 
     /**
      * LocalDate 格式转成Date

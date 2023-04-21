@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jimi.mapper.BankPaymentMapper">
+	<resultMap id="resultMap" type="com.jimi.entity.BankPaymentInfo">
+		<id column="id" property="id" jdbcType="VARCHAR" />
+		<result column="bank_code" property="bankCode" jdbcType="VARCHAR" />
+		<result column="bank_name" property="bankName" jdbcType="VARCHAR" />
+		<result column="transaction_id" property="transactionID" jdbcType="VARCHAR" />
+		<result column="bind_account" property="bindAccount" jdbcType="VARCHAR" />
+		<result column="bind_account_name" property="bindAccountName" jdbcType="VARCHAR" />
+		<result column="type" property="type" jdbcType="VARCHAR" />
+		<result column="status" property="status" jdbcType="VARCHAR" />
+		<result column="reciprocal_account" property="reciprocalAccount" jdbcType="VARCHAR" />
+		<result column="reciprocal_account_name" property="reciprocalAccountName" jdbcType="VARCHAR" />
+		<result column="gross_value" property="grossValue" jdbcType="VARCHAR" />
+		<result column="gross_currency" property="grossCurrency" jdbcType="VARCHAR" />
+		<result column="transaction_time" property="transactionTime" jdbcType="TIMESTAMP" />
+		<result column="del_flat" property="delFlat" jdbcType="VARCHAR" />
+		<result column="push_flat" property="pushFlat" jdbcType="VARCHAR" />
+		<result column="create_time" property="createTime" jdbcType="TIMESTAMP" />
+		<result column="update_time" property="updateTime" jdbcType="TIMESTAMP" />
+		<result column="create_by" property="createBy" jdbcType="VARCHAR" />
+		<result column="update_by" property="updateBy" jdbcType="VARCHAR" />
+	</resultMap>
+
+	<sql id="tableColumnList">
+		id, bank_code,bank_name, transaction_id, bind_account,bind_account_name,type,status,reciprocal_account,reciprocal_account_name,gross_value,gross_currency,transaction_time,del_flat,push_flat,create_time,update_time,create_by,update_by
+	</sql>
+
+	<insert id="insertBatchPayment" parameterType="java.util.List" >
+		INSERT INTO
+		bank_payment_info(id, bank_code,bank_name, transaction_id, bind_account,bind_account_name,type,status,reciprocal_account,reciprocal_account_name,gross_value,gross_currency,transaction_time,del_flat,push_flat,create_time,update_time,create_by,update_by)
+		VALUES
+		<foreach collection="list" item="item" index="index" separator="," >
+			(#{item.id},#{item.bankCode},#{item.bankName},#{item.transactionID},#{item.bindAccount},#{item.bindAccountName},#{item.type},#{item.status},#{item.reciprocalAccount},#{item.reciprocalAccountName},#{item.grossValue},
+			#{item.grossCurrency},#{item.transactionTime},'0',#{item.pushFlat},
+			#{item.createTime},#{item.updateTime},#{item.createBy},#{item.updateBy})
+		</foreach>
+	</insert>
+
+	<select id="selectByTransactionId" resultMap="resultMap" parameterType="java.lang.String">
+		select
+		<include refid="tableColumnList" />
+		from bank_payment_info
+		where transaction_id = #{transactionID}
+	</select>
+
+	<update id="updateDelFlatByTransactionId" parameterType="java.lang.String">
+		update bank_payment_info
+		set del_flat = '1', update_time = now()
+		where transaction_id = #{transactionID}
+	</update>
+
+	<select id="queryAllPayment" parameterType="com.jimi.entity.PaymentVo" resultType="java.lang.Integer">
+		select
+		COUNT(*)
+		from bank_payment_info
+		<where>
+			<include refid="queryByParams" />
+			and del_flat = '0'
+		</where>
+	</select>
+
+	<select id="queryAllPaymentPage" resultMap="resultMap" parameterType="com.jimi.entity.PaymentVo">
+		select
+		<include refid="tableColumnList" />
+		from bank_payment_info
+		<where>
+			<include refid="queryByParams" />
+			and del_flat = '0'
+		</where>
+		order by native_time desc
+		LIMIT ${(page-1)*pageSize},${pageSize}
+	</select>
+
+	<sql id="queryByParams">
+		<if test="startTime != null ">
+			AND transaction_time &gt;= #{startTime}
+		</if>
+		<if test="endTime !=null ">
+			AND transaction_time &lt;= #{endTime}
+		</if>
+		<if test="pushFlat != null">
+			<![CDATA[ AND push_flat = #{pushFlat} ]]>
+		</if>
+		<if test="bindAccount != null and bindAccount != ''">
+			<![CDATA[ AND bind_account = #{bindAccount} ]]>
+		</if>
+	</sql>
+
+	<update id="updatePushFlatByIds" parameterType="java.util.List">
+		<foreach collection="list" item="item" index="index" separator=";">
+			update bank_payment_info
+			set push_flat = '0', update_time = now()
+			where
+			id = #{item.id} and push_flat = '1'
+		</foreach>
+	</update>
+
+	<select id="selectByIdList" resultMap="resultMap" parameterType="java.util.List">
+		select
+		<include refid="tableColumnList" />
+		from bank_payment_info
+		where id in
+		<foreach item="item" index="index" collection="list" open="(" separator="," close=")">
+			#{item}
+		</foreach>
+	</select>
+</mapper>
