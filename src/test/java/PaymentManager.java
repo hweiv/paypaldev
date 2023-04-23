@@ -11,7 +11,7 @@ public class PaymentManager {
 
 public static void main(String[] args) {
 
-    Map<String,String> configMap = new HashMap<String,String>();
+    Map<String,String> configMap = new HashMap<>();
 
     configMap.put("mode", "sandbox");
 
