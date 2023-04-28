@@ -14,7 +14,7 @@ public class InterceptorConfig implements WebMvcConfigurer {
         //注册TestInterceptor拦截器
         registry.addInterceptor(loginInterceptor())
                 .addPathPatterns("/**")  //添加需要拦截的路径
-                .excludePathPatterns("/**/login", "/**/logout", "/**/bank/sendBankMsg", "/**/dingding/*")				//添加不拦截的请求路径
+                .excludePathPatterns("/**/login", "/**/logout", "/**/bank/*", "/**/dingding/*")				//添加不拦截的请求路径
                 ;
     }
 

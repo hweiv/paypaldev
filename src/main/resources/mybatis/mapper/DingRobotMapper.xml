@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jimi.mapper.DingRobotMapper">
+	<resultMap id="resultMap" type="com.jimi.entity.DingRobotInfo">
+		<id column="id" property="id" jdbcType="VARCHAR" />
+		<result column="robot_url" property="robotUrl" jdbcType="VARCHAR" />
+		<result column="robot_name" property="robotName" jdbcType="VARCHAR" />
+		<result column="del_flat" property="delFlat" jdbcType="VARCHAR" />
+		<result column="create_time" property="createTime" jdbcType="TIMESTAMP" />
+		<result column="update_time" property="updateTime" jdbcType="TIMESTAMP" />
+		<result column="create_by" property="createBy" jdbcType="VARCHAR" />
+		<result column="update_by" property="updateBy" jdbcType="VARCHAR" />
+	</resultMap>
+
+	<sql id="tableColumnList">
+		id, robot_url,robot_name,del_flat,create_time,update_time,create_by,update_by
+	</sql>
+
+	<insert id="insertBatchDingRobotInfo" parameterType="java.util.List" >
+		INSERT INTO
+		ding_robot_info(id, robot_url,robot_name,del_flat,create_time,update_time,create_by,update_by)
+		VALUES
+		<foreach collection="list" item="item" index="index" separator="," >
+			(#{item.id},#{item.robotUrl},#{item.robotName},'0',
+			#{item.createTime},#{item.updateTime},#{item.createBy},#{item.updateBy})
+		</foreach>
+	</insert>
+
+	<insert id="insertDingRobotInfo" parameterType="com.jimi.entity.BankInfo">
+		INSERT INTO
+		ding_robot_info(id, robot_url,robot_name,del_flat,create_time,update_time,create_by,update_by)
+		VALUE
+		(#{id},#{robotUrl},#{robotName},'0',#{createTime},#{updateTime},#{createBy},#{updateBy})
+	</insert>
+</mapper>

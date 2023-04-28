@@ -13,4 +13,8 @@ public class UUIDUtil {
    public static String getRandomSix() {
       return "" + (new Random()).nextInt(999999);
    }
+
+   public static void main(String[] args) {
+      System.out.println(getUUID());
+   }
 }

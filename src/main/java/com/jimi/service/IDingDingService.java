@@ -9,13 +9,20 @@ import java.util.List;
 
 public interface IDingDingService {
 
+    /**
+     * 用钉钉群机器人发送消息
+     * @param sendDingTalkVo
+     * @return
+     */
     ApiResult sendMsgInGroupChat(SendDingTalkVo sendDingTalkVo);
 
-
+    /**
+     * 发送钉钉消息通知列表
+     * @param list
+     * @return
+     */
     ApiResult sendNoticeMsg(List<DingDingMsgData> list);
 
+
     ApiResult sendNoticeMsgExternal(DingMsgExternalInfo info);
-
-
-
 }

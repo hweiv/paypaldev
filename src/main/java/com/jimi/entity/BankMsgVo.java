@@ -32,6 +32,8 @@ public class BankMsgVo {
     private String grossCurrency;
     // 交易时间时间戳
     private String transactionTime;
+    // 交易日期
+    private String transactionDate;
 
     public BankPaymentInfo toInfo() {
         BankPaymentInfo info = new BankPaymentInfo();

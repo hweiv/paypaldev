@@ -11,10 +11,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -27,13 +24,26 @@ public class BankController {
 
     // erp系统调用，接收银行交易数据
     @PostMapping("/sendBankMsg")
-    public ApiResult sendBankMsg(@RequestBody List<BankMsgVo> bankMsgVoList) {
+    public ApiResult gainBankData(@RequestBody List<BankMsgVo> bankMsgVoList) {
         ApiResult apiResult = null;
         try {
-            apiResult = bankService.sendBankMsg(bankMsgVoList);
+            apiResult = bankService.gainBankData(bankMsgVoList);
             logger.info("-DingRobotController-sendBankMsg 执行结果为", JSON.toJSONString(apiResult));
         } catch (Exception e) {
             logger.error("DingRobotController-sendBankMsg is error:{}", e);
+            return ApiResult.error(e.getMessage());
+        }
+        return apiResult;
+    }
+
+    @PostMapping("/bankList")
+    public ApiResult bankList() {
+        ApiResult apiResult = null;
+        try {
+            apiResult = ApiResult.success(bankService.bankList());
+            logger.info("-DingRobotController-bankList 执行结果为", JSON.toJSONString(apiResult));
+        } catch (Exception e) {
+            logger.error("DingRobotController-bankList is error:{}", e);
             return ApiResult.error(e.getMessage());
         }
         return apiResult;

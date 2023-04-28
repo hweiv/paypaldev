@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jimi.mapper.BankMapper">
+	<resultMap id="resultMap" type="com.jimi.entity.BankInfo">
+		<id column="id" property="id" jdbcType="VARCHAR" />
+		<result column="bank_code" property="bankCode" jdbcType="VARCHAR" />
+		<result column="bank_name" property="bankName" jdbcType="VARCHAR" />
+		<result column="bind_account" property="bindAccount" jdbcType="VARCHAR" />
+		<result column="bind_account_name" property="bindAccountName" jdbcType="VARCHAR" />
+		<result column="del_flat" property="delFlat" jdbcType="VARCHAR" />
+		<result column="create_time" property="createTime" jdbcType="TIMESTAMP" />
+		<result column="update_time" property="updateTime" jdbcType="TIMESTAMP" />
+		<result column="create_by" property="createBy" jdbcType="VARCHAR" />
+		<result column="update_by" property="updateBy" jdbcType="VARCHAR" />
+	</resultMap>
+
+	<sql id="tableColumnList">
+		id, bank_code,bank_name, bind_account,bind_account_name,del_flat,create_time,update_time,create_by,update_by
+	</sql>
+
+	<insert id="insertBatchBankInfo" parameterType="java.util.List" >
+		INSERT INTO
+		bank_info(id, bank_code,bank_name, bind_account,bind_account_name,del_flat,create_time,update_time,create_by,update_by)
+		VALUES
+		<foreach collection="list" item="item" index="index" separator="," >
+			(#{item.id},#{item.bankCode},#{item.bankName},#{item.bindAccount},#{item.bindAccountName},'0',
+			#{item.createTime},#{item.updateTime},#{item.createBy},#{item.updateBy})
+		</foreach>
+	</insert>
+	<insert id="insertBankInfo" parameterType="com.jimi.entity.BankInfo">
+		INSERT INTO
+		bank_info(id, bank_code,bank_name, bind_account,bind_account_name,del_flat,create_time,update_time,create_by,update_by)
+		VALUE
+		(#{id},#{bankCode},#{bankName},#{bindAccount},#{bindAccountName},#{delFlat},#{createTime},#{updateTime},#{createBy},#{updateBy})
+	</insert>
+
+	<select id="selectByBindAccount" resultMap="resultMap" parameterType="java.lang.String">
+		select
+		<include refid="tableColumnList" />
+		from bank_info
+		where bind_account = #{bindAccount} and del_flat = '0'
+	</select>
+
+	<select id="selectRobotByBindAccount" resultType="java.lang.String" parameterType="java.lang.String">
+		select
+		d.robot_url
+		from config_bank_robot as c left join bank_info as b on c.bank_id = b.id
+		left join ding_robot_info as d on c.ding_robot_id = d.id
+		where c.del_flat = '0' and b.bind_account = #{bindAccount}
+	</select>
+</mapper>

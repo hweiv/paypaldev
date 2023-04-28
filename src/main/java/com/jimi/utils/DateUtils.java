@@ -1,5 +1,7 @@
 package com.jimi.utils;
 
+import org.apache.commons.lang3.StringUtils;
+
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.*;
@@ -55,6 +57,9 @@ public class DateUtils {
      * @return
      */
     public static String dateToStringGMT8(Date date, String format) {
+        if (null == date) {
+            return "";
+        }
         SimpleDateFormat sdf = new SimpleDateFormat(format);
         sdf.setTimeZone(TimeZone.getTimeZone("GMT+8"));
         return sdf.format(date);
@@ -84,9 +89,22 @@ public class DateUtils {
      * @return
      */
     public static Date timeStrToDateGMT8(String time, String format) throws ParseException {
+        if (StringUtils.isBlank(time)) {
+            return null;
+        }
         SimpleDateFormat sdf = new SimpleDateFormat(format);
         sdf.setTimeZone(TimeZone.getTimeZone("GMT+8"));
-        Date date = sdf.parse(time);
+        Date date = sdf.parse(time.trim());
+        return date;
+    }
+
+    public static Date dateStrToDateGMT8(String dateStr) throws ParseException {
+        if (StringUtils.isBlank(dateStr)) {
+            return null;
+        }
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+        sdf.setTimeZone(TimeZone.getTimeZone("GMT+8"));
+        Date date = sdf.parse(dateStr.trim());
         return date;
     }
 
@@ -218,6 +236,7 @@ public class DateUtils {
         System.out.println("timeStamp-date" + timeStrToDateGMT(timeStamp2, TIME_STR));
         System.out.println("timeStamp-transStrToUTCGMT8" + transStrToUTCGMT8(timeStamp2));
         System.out.println("timeStamp-transStrToUTCGMT" + transStrToUTCGMT(timeStamp2));
+        System.out.println(dateStrToDateGMT8("2023-04-26"));
     }
 
 }

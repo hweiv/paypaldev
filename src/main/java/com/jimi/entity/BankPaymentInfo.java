@@ -38,5 +38,7 @@ public class BankPaymentInfo {
     private Date updateTime;
     private String createBy;
     private String updateBy;
+    // 交易日期
+    private Date transactionDate;
 
 }
