@@ -10,7 +10,7 @@ import java.util.Map;
 public interface IBankService {
     ApiResult gainBankData(List<BankMsgVo> bankMsgVoList) throws Exception;
 
-    void pushNewDataDingTalk(List<BankPaymentInfo> bankPaymentInfos) throws Exception;
+    void pushNewDataDingTalk(List<BankPaymentInfo> bankPaymentInfos, String ccbBankRobotUrl) throws Exception;
 
     List<Map<String, Object>> bankList();
 }

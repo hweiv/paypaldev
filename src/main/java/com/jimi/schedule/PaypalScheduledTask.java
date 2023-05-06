@@ -76,8 +76,8 @@ public class PaypalScheduledTask {
      */
     @Scheduled(cron = "10 59 0/1 * * ?")
     public void executor() {
-        logger.info("ScheduledTask-executor start run");
-        logger.info("ScheduledTask-executor start run 总共读取到账户数:{}, 对应账户为:{}", userListTob.size(), JSON.toJSONString(userListTob));
+        logger.info("PaypalScheduledTask-executor start run");
+        logger.info("PaypalScheduledTask-executor start run 总共读取到账户数:{}, 对应账户为:{}", userListTob.size(), JSON.toJSONString(userListTob));
         try {
             // 开始时间 本地时间今日零点
             String startTime = DateUtils.getTodayFormat();
@@ -95,15 +95,15 @@ public class PaypalScheduledTask {
                     paramVo.setPassword(pswListTob.get(i));
                     paramVo.setSignature(signatureListTob.get(i));
                     paramVo.setWebHookUrl(tobPayPalRobotUrl);
-                    logger.info("ScheduledTask executor data-paramVo:{}", JSON.toJSONString(paramVo));
+                    logger.info("PaypalScheduledTask executor data-paramVo:{}", JSON.toJSONString(paramVo));
                     List<PaypalPaymentDto> resultList = paypalService.pushPayment(paramVo);
-                    logger.info("ScheduledTask executor data-resultList:{}", resultList);
+                    logger.info("PaypalScheduledTask executor data-resultList:{}", resultList);
                 } else {
                     continue;
                 }
             }
         } catch (Exception e) {
-            logger.error("-ScheduledTask-executor is error:{}", e);
+            logger.error("-PaypalScheduledTask-executor is error:{}", e);
         }
     }
 
@@ -116,8 +116,8 @@ public class PaypalScheduledTask {
      */
     @Scheduled(cron = "40 29/30 * * * ?")
     public void onlineToCPush() {
-        logger.info("ScheduledTask-onlineToCPush start run");
-        logger.info("ScheduledTask-onlineToCPush start run 总共读取到账户数:{}, 对应账户为:{}", userListToc.size(), JSON.toJSONString(userListToc));
+        logger.info("PaypalScheduledTask-onlineToCPush start run");
+        logger.info("PaypalScheduledTask-onlineToCPush start run 总共读取到账户数:{}, 对应账户为:{}", userListToc.size(), JSON.toJSONString(userListToc));
         try {
             // 开始时间 本地时间今日零点
             String startTime = DateUtils.getTodayFormat();
@@ -135,15 +135,15 @@ public class PaypalScheduledTask {
                     paramVo.setPassword(pswListToc.get(i));
                     paramVo.setSignature(signatureListToc.get(i));
                     paramVo.setWebHookUrl(tocPayPalRobotUrl);
-                    logger.info("ScheduledTask onlineToCPush data-paramVo:{}", JSON.toJSONString(paramVo));
+                    logger.info("PaypalScheduledTask onlineToCPush data-paramVo:{}", JSON.toJSONString(paramVo));
                     List<PaypalPaymentDto> resultList = paypalService.pushPayment(paramVo);
-                    logger.info("ScheduledTask onlineToCPush data-resultList:{}", resultList);
+                    logger.info("PaypalScheduledTask onlineToCPush data-resultList:{}", resultList);
                 } else {
                     continue;
                 }
             }
         } catch (Exception e) {
-            logger.error("-ScheduledTask-executor is error:{}", e);
+            logger.error("-PaypalScheduledTask-executor is error:{}", e);
         }
     }
 }

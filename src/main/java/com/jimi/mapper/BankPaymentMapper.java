@@ -27,5 +27,9 @@ public interface BankPaymentMapper {
     // 查询时间段内新增的数据
     List<BankPaymentInfo> selectNewData(@Param("pushFlat") String pushFlat, @Param("type") String type);
 
+    // 查询银行账户列表
     List<Map<String, Object>> selectBankList();
+
+    // 通过银行账号查询支付数据
+    List<BankPaymentInfo> queryPaymentsByBankAccounts(@Param("list")List<String> bankAccounts, @Param("pushFlat")String pushFlat, @Param("type")String type);
 }

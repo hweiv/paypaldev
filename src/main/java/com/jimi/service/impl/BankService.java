@@ -36,12 +36,6 @@ public class BankService implements IBankService {
     @Autowired
     private BankPaymentMapper bankPaymentMapper;
 
-    @Value("${ccbbank.robot.webhook}")
-    private String ccbBankRobotUrl;
-
-    @Value("${spdbbank.robot.webhook}")
-    private String spdbBankRobotUrl;
-
     private static final String BANK_PAYMENT_NEW_DATA_FLAG_KEY = "BANK_PAYMENT_NEW_DATA_FLAG";
 
     private static final String YES_FLAG = "Y";
@@ -88,42 +82,21 @@ public class BankService implements IBankService {
     }
 
     @Override
-    public void pushNewDataDingTalk(List<BankPaymentInfo> bankPaymentInfos) throws Exception{
-        List<BankPaymentInfo> ccbPaymentList = new ArrayList<>();
-        List<BankPaymentInfo> spdbPaymentList = new ArrayList<>();
-        for (BankPaymentInfo info : bankPaymentInfos) {
-            if (StringUtils.equalsIgnoreCase("ccb", info.getBankCode())) {
-                ccbPaymentList.add(info);
-            }
-            if (StringUtils.equalsIgnoreCase("spdb", info.getBankCode())) {
-                spdbPaymentList.add(info);
-            }
-        }
+    public void pushNewDataDingTalk(List<BankPaymentInfo> bankPaymentInfos, String robotUrl) throws Exception{
         try {
-            // 建设银行
-            pushDingGroupTalk(ccbPaymentList);
-            ccbPaymentList.forEach(payment -> bankPaymentMapper.updatePushFlatByTransactionId(payment.getTransactionID()));
-            // 浦发银行
-            pushDingGroupTalk(spdbPaymentList);
-            spdbPaymentList.forEach(payment -> bankPaymentMapper.updatePushFlatByTransactionId(payment.getTransactionID()));
-            // 推送到钉钉群删除缓存
-            redisCacheUtil.deleteObject(BANK_PAYMENT_NEW_DATA_FLAG_KEY);
+            if (bankPaymentInfos.size() < 1) {
+                return;
+            }
+            String content = getContent(bankPaymentInfos);
+            ArrayList<String> mobileList = Lists.newArrayList();
+            DingDingPush.sendMsgToGroupChat(robotUrl, false, mobileList, content);
+            // 根据交易单号修改推送状态为已推送
+            bankPaymentInfos.forEach(payment -> bankPaymentMapper.updatePushFlatByTransactionId(payment.getTransactionID()));
         } catch (Exception e) {
             logger.error("BankService pushNewDataDingTalk:{}", e);
             throw new Exception(e.getMessage());
         }
     }
-
-    private void pushDingGroupTalk(List<BankPaymentInfo> paymentList) {
-        if (paymentList.size() < 1) {
-            return;
-        }
-        String robotUrl = getRobotUrl(paymentList.get(0).getBankCode().toLowerCase());
-        String content = getContent(paymentList);
-        ArrayList<String> mobileList = Lists.newArrayList();
-        DingDingPush.sendMsgToGroupChat(robotUrl, false, mobileList, content);
-    }
-
 
     /**
      * 获取消息文案
@@ -162,15 +135,6 @@ public class BankService implements IBankService {
             case "1" : return "收款";
             case "2" : return "付款";
             default: return "其他";
-        }
-    }
-
-    // 根据银行编码获取对应机器人
-    private String getRobotUrl(String bankCode){
-        switch (bankCode) {
-            case "ccb" : return ccbBankRobotUrl;
-            case "spdb" : return spdbBankRobotUrl;
-            default: return ccbBankRobotUrl;
         }
     }
 

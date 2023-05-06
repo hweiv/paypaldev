@@ -58,27 +58,7 @@
 		where transaction_id = #{transactionID}
 	</update>
 
-	<select id="queryAllPayment" parameterType="com.jimi.entity.PaymentVo" resultType="java.lang.Integer">
-		select
-		COUNT(*)
-		from bank_payment_info
-		<where>
-			<include refid="queryByParams" />
-			and del_flat = '0'
-		</where>
-	</select>
 
-	<select id="queryAllPaymentPage" resultMap="resultMap" parameterType="com.jimi.entity.PaymentVo">
-		select
-		<include refid="tableColumnList" />
-		from bank_payment_info
-		<where>
-			<include refid="queryByParams" />
-			and del_flat = '0'
-		</where>
-		order by native_time desc
-		LIMIT ${(page-1)*pageSize},${pageSize}
-	</select>
 	<select id="selectNewData" resultMap="resultMap">
 		select
 		<include refid="tableColumnList" />
@@ -117,4 +97,19 @@
 			<![CDATA[ AND bind_account = #{bindAccount} ]]>
 		</if>
 	</sql>
+
+	<select id="queryPaymentsByBankAccounts" resultType="com.jimi.entity.BankPaymentInfo">
+		select
+		<include refid="tableColumnList" />
+		from bank_payment_info
+		<where>
+			<include refid="queryNewDataByParams" />
+			and del_flat = '0'
+			and bind_account in
+			<foreach item="item" index="index" collection="list" open="(" separator="," close=")">
+				#{item}
+			</foreach>
+		</where>
+		order by create_time desc
+	</select>
 </mapper>
