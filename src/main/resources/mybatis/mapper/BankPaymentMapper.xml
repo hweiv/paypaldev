@@ -70,6 +70,30 @@
 		order by create_time desc
 	</select>
 
+	<select id="selectInterNewData" resultMap="resultMap">
+		select
+		<include refid="tableColumnList" />
+		from bank_payment_info
+		<where>
+			<include refid="queryNewDataByParams" />
+			and del_flat = '0'
+			and gross_currency != 'CNY'
+		</where>
+		order by create_time desc
+	</select>
+
+	<select id="selectDomesticNewData" resultMap="resultMap">
+		select
+		<include refid="tableColumnList" />
+		from bank_payment_info
+		<where>
+			<include refid="queryNewDataByParams" />
+			and del_flat = '0'
+			and gross_currency = 'CNY'
+		</where>
+		order by create_time desc
+	</select>
+
 	<select id="selectBankList" resultType="java.util.Map">
 		select bank_code,bank_name,bind_account FROM bank_payment_info GROUP BY bind_account,bank_code,bank_name
 	</select>
@@ -111,5 +135,63 @@
 			</foreach>
 		</where>
 		order by create_time desc
+	</select>
+
+	<select id="queryBankCodeList" resultType="com.jimi.entity.BankAccountDto">
+		select bank_code as bankCode,bank_name as bankName FROM bank_payment_info GROUP BY bank_code
+	</select>
+
+	<select id="queryBankAccountListByBankCode" resultType="java.lang.String" parameterType="java.lang.String">
+		select bind_account FROM bank_payment_info where bank_code = #{bankCode} GROUP BY bind_account
+	</select>
+
+	<select id="queryBankDataCount" resultType="java.lang.Integer" parameterType="com.jimi.entity.BankReqVo">
+		select
+		COUNT(*)
+		from bank_payment_info
+		<where>
+			<include refid="queryByBankReqVo" />
+			and del_flat = '0'
+		</where>
+	</select>
+
+	<select id="queryBankDataPage" resultMap="resultMap" parameterType="com.jimi.entity.BankReqVo">
+		select
+		<include refid="tableColumnList" />
+		from bank_payment_info
+		<where>
+			<include refid="queryByBankReqVo" />
+			and del_flat = '0'
+		</where>
+		order by create_time desc
+		LIMIT ${(page-1)*pageSize},${pageSize}
+	</select>
+
+	<sql id="queryByBankReqVo">
+		<if test="pushFlat != null and pushFlat != ''">
+			<![CDATA[ AND push_flat = #{pushFlat} ]]>
+		</if>
+		<if test="startTime != null ">
+			AND create_time &gt;= #{startTime}
+		</if>
+		<if test="endTime !=null ">
+			AND create_time &lt;= #{endTime}
+		</if>
+		<if test="bankCode != null and bankCode != ''">
+			<![CDATA[ AND bank_code = #{bankCode} ]]>
+		</if>
+		<if test="accountEndNum != null and accountEndNum != ''">
+			<![CDATA[ AND bind_account like CONCAT('%',#{accountEndNum},'%') ]]>
+		</if>
+	</sql>
+
+	<select id="selectByIdList" resultMap="resultMap" parameterType="java.util.List">
+		select
+		<include refid="tableColumnList" />
+		from bank_payment_info
+		where id in
+		<foreach item="item" index="index" collection="list" open="(" separator="," close=")">
+			#{item}
+		</foreach>
 	</select>
 </mapper>

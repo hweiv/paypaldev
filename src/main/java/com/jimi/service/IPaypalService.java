@@ -19,6 +19,8 @@ public interface IPaypalService {
 
     boolean pushPaymentList(List<String> paymentIdList);
 
+    List<PaypalAccount> queryAccountList();
+
     /*
     Payment createPayment(Double v, String usd, PaypalPaymentMethod paypal, PaypalPaymentIntent sale, String payment_description, String cancelUrl, String successUrl) throws PayPalRESTException;
 

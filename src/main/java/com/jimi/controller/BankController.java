@@ -2,7 +2,7 @@ package com.jimi.controller;
 
 import com.alibaba.fastjson.JSON;
 import com.jimi.common.ApiResult;
-import com.jimi.entity.BankMsgVo;
+import com.jimi.entity.*;
 import com.jimi.entity.dingding.DingDingMsgData;
 import com.jimi.entity.dingding.DingMsgExternalInfo;
 import com.jimi.entity.dingding.SendDingTalkVo;
@@ -28,9 +28,9 @@ public class BankController {
         ApiResult apiResult = null;
         try {
             apiResult = bankService.gainBankData(bankMsgVoList);
-            logger.info("-DingRobotController-sendBankMsg 执行结果为", JSON.toJSONString(apiResult));
+            logger.info("-BankController-sendBankMsg 执行结果为", JSON.toJSONString(apiResult));
         } catch (Exception e) {
-            logger.error("DingRobotController-sendBankMsg is error:{}", e);
+            logger.error("BankController-sendBankMsg is error:{}", e);
             return ApiResult.error(e.getMessage());
         }
         return apiResult;
@@ -41,11 +41,54 @@ public class BankController {
         ApiResult apiResult = null;
         try {
             apiResult = ApiResult.success(bankService.bankList());
-            logger.info("-DingRobotController-bankList 执行结果为", JSON.toJSONString(apiResult));
+            logger.info("-BankController-bankList 执行结果为", JSON.toJSONString(apiResult));
         } catch (Exception e) {
-            logger.error("DingRobotController-bankList is error:{}", e);
+            logger.error("BankController-bankList is error:{}", e);
             return ApiResult.error(e.getMessage());
         }
         return apiResult;
+    }
+
+    // 查询银行账号
+    @PostMapping("/bankAccountList")
+    public ApiResult bankAccountList() {
+        try {
+            List<BankAccountDto> bankAccountList = bankService.bankAccountList();
+            logger.info("-BankController-bankAccountList 执行结果为", JSON.toJSONString(bankAccountList));
+            return ApiResult.success(bankAccountList);
+        } catch (Exception e) {
+            logger.error("BankController-bankAccountList is error:{}", e);
+            return ApiResult.error(e.getMessage());
+        }
+    }
+
+    // 查询银行数据列表
+    @PostMapping("/queryBankData")
+    public ApiResult queryBankData(@RequestBody BankReqVo bankReqVo) {
+        try {
+            BankPaymentDtoPageInfo bankPaymentDtoPageInfo = bankService.queryBankData(bankReqVo);
+            logger.info("-BankController-queryBankData 执行结果为", JSON.toJSONString(bankPaymentDtoPageInfo));
+            return ApiResult.success(bankPaymentDtoPageInfo);
+        } catch (Exception e) {
+            logger.error("BankController-queryBankData is error:{}", e);
+            return ApiResult.error(e.getMessage());
+        }
+    }
+
+    // 重新一键推送
+    @PostMapping("/pushBankPaymentList")
+    public ApiResult pushBankPaymentList(@RequestBody List<String> paymentIdList) {
+        try {
+            boolean result = bankService.pushBankPaymentList(paymentIdList);
+            logger.info("-BankController-queryBankData 执行结果为", result);
+            if (result) {
+                return ApiResult.success("推送成功");
+            } else {
+                return ApiResult.success("推送失败");
+            }
+        } catch (Exception e) {
+            logger.error("BankController-queryBankData is error:{}", e);
+            return ApiResult.error(e.getMessage());
+        }
     }
 }

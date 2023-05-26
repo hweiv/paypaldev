@@ -110,4 +110,11 @@
 			#{item}
 		</foreach>
 	</select>
+
+	<select id="queryAccountList" resultType="java.lang.String">
+		select
+		bind_account
+		from paypal_payment_info
+		group by bind_account
+	</select>
 </mapper>

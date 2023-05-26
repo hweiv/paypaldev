@@ -21,4 +21,6 @@ public interface PaypalPaymentMapper {
     int updatePushFlatByIds(List<PaypalPaymentInfo> paymentInfos);
 
     List<PaypalPaymentInfo> selectByIdList(List<String> paymentIdList);
+
+    List<String> queryAccountList();
 }

@@ -1,8 +1,6 @@
 package com.jimi.mapper;
 
-import com.jimi.entity.BankPaymentInfo;
-import com.jimi.entity.PaymentVo;
-import com.jimi.entity.PaypalPaymentInfo;
+import com.jimi.entity.*;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
@@ -27,9 +25,30 @@ public interface BankPaymentMapper {
     // 查询时间段内新增的数据
     List<BankPaymentInfo> selectNewData(@Param("pushFlat") String pushFlat, @Param("type") String type);
 
+    // 查询时间段内新增的数据--国际业务（外币，除CNY）
+    List<BankPaymentInfo> selectInterNewData(@Param("pushFlat") String pushFlat, @Param("type") String type);
+
+    // 查询时间段内新增的数据--人民币结算数据
+    List<BankPaymentInfo> selectDomesticNewData(@Param("pushFlat") String pushFlat, @Param("type") String type);
+
     // 查询银行账户列表
     List<Map<String, Object>> selectBankList();
 
     // 通过银行账号查询支付数据
     List<BankPaymentInfo> queryPaymentsByBankAccounts(@Param("list")List<String> bankAccounts, @Param("pushFlat")String pushFlat, @Param("type")String type);
+
+    // 查询银行账号的银行编码
+    List<BankAccountDto> queryBankCodeList();
+
+    // 根据银行编码查询银行账号
+    List<String> queryBankAccountListByBankCode(@Param("bankCode") String bankCode);
+
+    // 根据条件查询总数
+    int queryBankDataCount(BankReqVo bankReqVo);
+
+    // 分页查询数据
+    List<BankPaymentInfo> queryBankDataPage(BankReqVo bankReqVo);
+
+    // 根据id查询
+    List<BankPaymentInfo> selectByIdList(List<String> paymentIdList);
 }

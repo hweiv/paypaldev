@@ -79,7 +79,7 @@ public class LoginController {
             ApiResult<String> success = ApiResult.success(token);
             return success;
         }
-        return ApiResult.error("登录验证失败");
+        return ApiResult.error(401, "登录验证失败");
     }
 
 

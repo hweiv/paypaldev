@@ -35,6 +35,7 @@ public class DingDingPush {
         try {
             //组装请求内容
             String reqStr = buildReqStr(content, isAtAll, mobileList);
+            logger.info("顶顶通知url:{}, reqStr:{}", webHook, reqStr);
             //推送消息(http请求)
             String result = HttpUtil.post(webHook, reqStr);
             logger.info("通知响应结果：{}",result);

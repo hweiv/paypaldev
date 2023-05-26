@@ -42,6 +42,16 @@ public class ApiResult<T> implements Serializable {
         return result;
     }
 
+    // 自定义异常拦截，错误码500，异常信息
+    public static ApiResult<Void> error(int errorCode, String msg){
+
+        ApiResult<Void> result = new ApiResult<Void>();
+        result.setIsOk(false);
+        result.setCode(errorCode);
+        result.setMsg(msg);
+        return result;
+    }
+
     public static ApiResult<Void> error(CustomException e){
 
         ApiResult<Void> result = new ApiResult<Void>();

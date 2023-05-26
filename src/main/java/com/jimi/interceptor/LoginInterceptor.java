@@ -1,7 +1,11 @@
 package com.jimi.interceptor;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jimi.common.ApiResult;
 import com.jimi.entity.Account;
+import com.jimi.enums.CustomExceptionType;
+import com.jimi.exception.BusinessException;
+import com.jimi.exception.CustomException;
 import com.jimi.utils.UserUtils;
 import com.jimi.utils.jwt.TokenUtils;
 import lombok.extern.slf4j.Slf4j;
@@ -35,7 +39,7 @@ public class LoginInterceptor implements HandlerInterceptor {
             response.setCharacterEncoding("UTF-8");
             response.setContentType("application/json; charset=utf-8");
             try (PrintWriter writer = response.getWriter()) {
-                writer.print(ApiResult.error("登录验证失败"));
+                writer.println(new ObjectMapper().writeValueAsString(ApiResult.error(401, "登录验证失败")));
             } catch (Exception e) {
                 logger.error("login token error is {}", e.getMessage());
             }

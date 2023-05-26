@@ -6,6 +6,7 @@ import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
 import com.google.common.collect.Lists;
 import com.jimi.common.constant.PaypalTransConstant;
 import com.jimi.common.dingding.DingDingPush;
@@ -51,6 +52,7 @@ public class PaypalService implements IPaypalService {
 
     private static final String PAYMENT_KEY = "PAYPALPAYMENT_";
     private static final String PAYMENT_SET_KEY = "PAYPALPAYMENT_SET_KEY";
+    private static final String PAYPALPAYMENT_ACCOUNT_LIST_KEY = "PAYPALPAYMENT_ACCOUNT_LIST";
 
 //    @Autowired
 //    private APIContext apiContext;
@@ -379,5 +381,27 @@ public class PaypalService implements IPaypalService {
         }
         logger.info("PaypalService-getContent2 result:{}", sb.toString());
         return sb.toString();
+    }
+
+    @Override
+    public List<PaypalAccount> queryAccountList() {
+        List<PaypalAccount> resultList = new ArrayList<>();
+        String cacheObject = redisCacheUtil.getCacheObject(PAYPALPAYMENT_ACCOUNT_LIST_KEY);
+        logger.info("PaypalService-queryAccountList.getCacheObject:{}", cacheObject);
+        if (cacheObject != null) {
+            resultList = JSONObject.parseArray(cacheObject).toJavaList(PaypalAccount.class);
+            return resultList;
+        }
+        List<String> accountList = mapper.queryAccountList();
+        for (String s : accountList) {
+            if (StringUtils.isBlank(s)) continue;
+            PaypalAccount paypalAccount = new PaypalAccount();
+            paypalAccount.setBindAccount(s);
+            paypalAccount.setBindAccountName(PaypalTransConstant.BIND_ACCOUNT_NAME.get(s));
+            resultList.add(paypalAccount);
+        }
+        logger.info("PaypalService-queryAccountList:{}", resultList);
+        redisCacheUtil.setCacheObject(PAYPALPAYMENT_ACCOUNT_LIST_KEY, JSON.toJSONString(resultList), 1, TimeUnit.DAYS);
+        return resultList;
     }
 }

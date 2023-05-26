@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jimi.mapper.CustomerAccountMapper">
+	<resultMap id="resultMap" type="com.jimi.entity.CustomerAccountInfo">
+		<id column="id" property="id" jdbcType="VARCHAR" />
+		<result column="customer_account_name" property="customerAccountName" jdbcType="VARCHAR" />
+		<result column="customer_account" property="customerAccount" jdbcType="VARCHAR" />
+		<result column="del_flat" property="delFlat" jdbcType="VARCHAR" />
+		<result column="create_time" property="createTime" jdbcType="TIMESTAMP" />
+		<result column="update_time" property="updateTime" jdbcType="TIMESTAMP" />
+		<result column="create_by" property="createBy" jdbcType="VARCHAR" />
+		<result column="update_by" property="updateBy" jdbcType="VARCHAR" />
+	</resultMap>
+
+	<sql id="tableColumnList">
+		id, customer_account_name,customer_account,del_flat,create_time,update_time,create_by,update_by
+	</sql>
+
+	<insert id="insertBatchInfo" parameterType="java.util.List" >
+		INSERT INTO
+		customer_account_info(id, customer_account_name,customer_account,del_flat,create_time,update_time,create_by,update_by)
+		VALUES
+		<foreach collection="list" item="item" index="index" separator="," >
+			(replace(uuid(),'-',''),#{item.customerAccountName},#{item.customerAccount},'0',
+			#{item.createTime},#{item.updateTime},#{item.createBy},#{item.updateBy})
+		</foreach>
+	</insert>
+
+	<insert id="insertInfo" parameterType="com.jimi.entity.BankInfo">
+		INSERT INTO
+		customer_account_info(id, customer_account_name,customer_account,del_flat,create_time,update_time,create_by,update_by)
+		VALUE
+		(replace(uuid(),'-',''),#{item.customerAccountName},#{item.customerAccount},#{delFlat},#{createTime},#{updateTime},#{createBy},#{updateBy})
+	</insert>
+
+	<select id="selectByAccountName" resultType="java.lang.Integer" parameterType="java.lang.String">
+		select
+		count (id)
+		from customer_account_info
+		where customer_account_name = #{customerAccountName} and del_flat = '0'
+	</select>
+
+	<select id="selectByAccount" resultType="java.lang.Integer" parameterType="java.lang.String">
+		select
+		count (id)
+		from customer_account_info
+		where customer_account = #{customerAccount} and del_flat = '0'
+	</select>
+</mapper>
